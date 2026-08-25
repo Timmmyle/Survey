@@ -54,11 +54,11 @@ export interface LikertScaleOption {
 }
 
 export const LIKERT_SCALE_OPTIONS: LikertScaleOption[] = [
-  { value: 1, emoji: '😞', label: 'Yêu' },
-  { value: 2, emoji: '😐', label: 'Tạm' },
-  { value: 3, emoji: '🙂', label: 'Trung bình' },
-  { value: 4, emoji: '😊', label: 'Tốt' },
-  { value: 5, emoji: '🤩', label: 'Xuất sắc' },
+  { value: 1, emoji: '😞', label: 'Hoàn toàn không đồng ý' },
+  { value: 2, emoji: '😐', label: 'Không đồng ý' },
+  { value: 3, emoji: '🙂', label: 'Trung lập' },
+  { value: 4, emoji: '😊', label: 'Đồng ý' },
+  { value: 5, emoji: '🤩', label: 'Hoàn toàn đồng ý' },
 ];
 
 // 3. COMMON QUESTIONS (PART A) - Likert Questions C1 to C7

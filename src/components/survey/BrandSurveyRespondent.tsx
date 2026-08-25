@@ -60,6 +60,22 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     voiceGuides: false,
   });
 
+  // Dynamically update document root font size when accessibility font size changes
+  useEffect(() => {
+    let size = '';
+    if (accessSettings.fontSize === 'normal') {
+      size = '17px'; // standard 16px -> 17px (+1px)
+    } else if (accessSettings.fontSize === 'large') {
+      size = '19px'; // standard 16px -> 19px (+3px)
+    } else if (accessSettings.fontSize === 'extra-large') {
+      size = '21px'; // standard 16px -> 21px (+5px)
+    }
+    document.documentElement.style.fontSize = size;
+    return () => {
+      document.documentElement.style.fontSize = '';
+    };
+  }, [accessSettings.fontSize]);
+
   // Dynamically update participant code on group select
   useEffect(() => {
     let active = true;
@@ -223,9 +239,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       }
     } else if (q.type === 'checkbox') {
       const selectedList = (ans as string[]) || [];
+      const hasOther = selectedList.includes('Khác');
       
-      // Check min selection count
-      if (q.minSelect && selectedList.length < q.minSelect) {
+      // Check min selection count (bypass if user select custom opinion)
+      if (q.minSelect && selectedList.length < q.minSelect && !hasOther) {
         setValidationError(`Vui lòng chọn tối thiểu ${q.minSelect} phương án để tiếp tục.`);
         return;
       }
@@ -442,7 +459,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
     return (
       <div className="space-y-2">
-        <span className={`block font-black text-slate-950 leading-snug tracking-tight ${getQuestionSizeClass()}`}>
+        <span className={`block font-bold text-slate-950 leading-snug tracking-tight ${getQuestionSizeClass()}`}>
           {mainQuestion}
         </span>
         {subQuestion && (
@@ -461,7 +478,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       {step !== 'success' && (
         <div className="text-center space-y-4 mb-5 shrink-0">
           <span className="inline-block text-[10px] font-black uppercase text-slate-400 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-200/80">
-            Nghiên cứu khoa học mỹ thuật
+            LUẬN VĂN NGHIÊN CỨU MỸ THUẬT ỨNG DỤNG
           </span>
           <h1 className="text-sm font-black text-slate-900 leading-normal max-w-md mx-auto">
             {THESIS_METADATA.websiteTitle}
@@ -493,7 +510,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
               {/* Research specifics */}
               <div className="space-y-3.5 text-xs text-slate-655 font-semibold leading-relaxed">
                 <div>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Tên đề tài luận văn:</span>
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Đề tài:</span>
                   <span className="text-slate-900 font-extrabold italic">{THESIS_METADATA.thesisName}</span>
                 </div>
                 
@@ -1018,7 +1035,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                             }}
                             className="h-4.5 w-4.5 accent-amber-500 rounded-md shrink-0"
                           />
-                          <span className="text-xs font-bold leading-tight font-mono">Khác / Ý kiến bổ sung</span>
+                          <span className="text-xs font-bold leading-tight font-mono">Ý kiến khác</span>
                         </label>
 
                         {/* Text input when "Khác" is checked */}
@@ -1307,7 +1324,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                           <div className="flex flex-wrap gap-1.5 pt-1">
                             {list.map((item) => (
                               <span key={item} className="text-amber-800 bg-amber-50 border border-amber-250 py-1 px-2.5 rounded-lg font-extrabold text-[10px]">
-                                {item === 'Khác' && otherVal ? `Khác: ${otherVal}` : item}
+                                {item === 'Khác' && otherVal ? `Ý kiến khác: ${otherVal}` : item}
                               </span>
                             ))}
                             {list.length === 0 && (

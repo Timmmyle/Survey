@@ -468,7 +468,7 @@ export const AdminDashboard: React.FC = () => {
                           <div className="flex flex-wrap gap-1.5 pt-1">
                             {list.map((item) => (
                               <span key={item} className="text-amber-800 bg-amber-50 border border-amber-250 py-1 px-2.5 rounded-lg font-extrabold text-[10px]">
-                                {item === 'Khác' && otherVal ? `Khác: ${otherVal}` : item}
+                                {item === 'Khác' && otherVal ? `Ý kiến khác: ${otherVal}` : item}
                               </span>
                             ))}
                             {list.length === 0 && (
