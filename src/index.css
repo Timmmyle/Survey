@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@utility animate-wave {
+  animation: wave 1.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.2);
+  }
+  50% {
+    transform: scaleY(1.0);
+  }
+}
+
+/* Custom styles for accessibility scale classes */
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
