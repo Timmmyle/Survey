@@ -184,7 +184,7 @@ export const AdminDashboard: React.FC = () => {
               return (
                 <div key={q.id} className="space-y-2 border-b border-slate-100/70 pb-5 last:border-0 last:pb-0">
                   <p className="text-xs font-extrabold text-slate-800 leading-relaxed">
-                    {q.id.toUpperCase()}: {q.text}
+                    {q.text.toUpperCase().startsWith(q.id.toUpperCase() + '.') ? q.text : `${q.id.toUpperCase()}: ${q.text}`}
                   </p>
                   <span className="text-[9px] font-bold text-slate-400 uppercase font-mono">
                     (Số mẫu đã đánh giá: {totalCount})
@@ -243,7 +243,7 @@ export const AdminDashboard: React.FC = () => {
                     return (
                       <div key={q.id} className="space-y-2 border-b border-slate-50 pb-5 last:border-0 last:pb-0">
                         <p className="text-xs font-bold text-slate-800 leading-relaxed">
-                          {q.id.toUpperCase()}: {q.text}
+                          {q.text.toUpperCase().startsWith(q.id.toUpperCase() + '.') ? q.text : `${q.id.toUpperCase()}: ${q.text}`}
                         </p>
                         <span className="text-[9px] font-bold text-slate-400 uppercase font-mono">
                           (Số bài làm của nhóm: {totalCount})

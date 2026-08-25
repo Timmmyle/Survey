@@ -459,8 +459,8 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       
       {/* 1. Universal Top Header Title */}
       {step !== 'success' && (
-        <div className="text-center space-y-2.5 mb-5 shrink-0">
-          <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-200/80">
+        <div className="text-center space-y-4 mb-5 shrink-0">
+          <span className="inline-block text-[10px] font-black uppercase text-slate-400 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-200/80">
             Nghiên cứu khoa học mỹ thuật
           </span>
           <h1 className="text-sm font-black text-slate-900 leading-normal max-w-md mx-auto">
