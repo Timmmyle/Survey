@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Participant, BrandSurveySubmission } from '../../types';
 import {
   THESIS_METADATA,
@@ -7,6 +7,7 @@ import {
   COMMON_LIKERT_QUESTIONS,
   GROUP_LIKERT_QUESTIONS,
   INTERVIEW_QUESTIONS,
+  TRANSLATIONS,
 } from '../../data/surveyData';
 import { BrandSurveyService } from '../../services/surveyService';
 import { AccessibilityMenu, AccessibilitySettings } from '../conversational/AccessibilityMenu';
@@ -27,6 +28,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 }) => {
   // Stepper state
   const [step, setStep] = useState<FlowStep>('welcome');
+  const [lang, setLang] = useState<'vi' | 'en'>('vi');
+  const [showCameraPopup, setShowCameraPopup] = useState(false);
+  const [useCamera, setUseCamera] = useState(false);
+  const [consentCamera, setConsentCamera] = useState<string>('Người dùng không bật camera');
   
   // Participant Info state
   const [selectedGroup, setSelectedGroup] = useState<string>('QT-LĐ');
@@ -59,6 +64,66 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     highContrast: false,
     voiceGuides: false,
   });
+
+  const t = (key: keyof typeof TRANSLATIONS.vi) => {
+    return TRANSLATIONS[lang][key] || TRANSLATIONS.vi[key] || '';
+  };
+
+  const renderLikertLabel = (label: string) => {
+    if (label.startsWith("Hoàn toàn ")) {
+      return (
+        <>
+          <span className="block">{lang === 'vi' ? 'Hoàn toàn' : 'Strongly'}</span>
+          <span className="block">{label.replace("Hoàn toàn ", "")}</span>
+        </>
+      );
+    }
+    if (label.startsWith("Strongly ")) {
+      return (
+        <>
+          <span className="block">Strongly</span>
+          <span className="block">{label.replace("Strongly ", "")}</span>
+        </>
+      );
+    }
+    return <span className="block">{label}</span>;
+  };
+
+  const saveProgressIncrementally = async (
+    updatedLikert = likertAnswers,
+    updatedInterview = interviewAnswers,
+    force = false,
+    cameraConsentOverride?: string
+  ) => {
+    if (!force && (step === 'welcome' || step === 'info' || step === 'consent')) return;
+
+    try {
+      const finalParticipant: Participant = {
+        id: participantCode ? `p-${participantCode}` : `p-${Date.now()}`,
+        code: participantCode,
+        groupCode: selectedGroup,
+        fullName: fullName.trim() || undefined,
+        titleUnit: titleUnit.trim() || undefined,
+        participationForm: participationForm,
+        consentAgreed: true,
+        consentRecord: isInterviewEligible() ? (consentRecord === 'yes') : null,
+        consentCamera: cameraConsentOverride || consentCamera,
+        createdAt: new Date().toLocaleString('vi-VN'),
+      };
+
+      const submission: BrandSurveySubmission = {
+        id: participantCode ? `sub-${participantCode}` : `sub-${Date.now()}`,
+        participant: finalParticipant,
+        likertAnswers: updatedLikert,
+        interviewAnswers: updatedInterview,
+        submittedAt: new Date().toLocaleString('vi-VN'),
+      };
+
+      await BrandSurveyService.saveSubmission(submission);
+    } catch (err) {
+      console.error('Failed to save incremental progress:', err);
+    }
+  };
 
   // Dynamically update document root font size when accessibility font size changes
   useEffect(() => {
@@ -112,7 +177,16 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'vi-VN';
+      utterance.lang = lang === 'vi' ? 'vi-VN' : 'en-US';
+      
+      if (lang === 'en') {
+        const voices = window.speechSynthesis.getVoices();
+        const enVoice = voices.find((v) => v.lang.startsWith('en'));
+        if (enVoice) {
+          utterance.voice = enVoice;
+        }
+      }
+      
       utterance.onstart = () => setActiveSpeech(true);
       utterance.onend = () => setActiveSpeech(false);
       utterance.onerror = () => setActiveSpeech(false);
@@ -183,7 +257,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
   const handleConsentNext = () => {
     if (!consentInfo || !consentData || !consentCitation) {
-      setValidationError('Vui lòng chọn đầy đủ các ô xác nhận đồng thuận tham gia và cách trích dẫn ý kiến trước khi bắt đầu.');
+      setValidationError(lang === 'vi' ? 'Vui lòng chọn đầy đủ các ô xác nhận đồng thuận tham gia và cách trích dẫn ý kiến trước khi bắt đầu.' : 'Please check all consent boxes and citation preference before starting.');
       return;
     }
     setValidationError(null);
@@ -192,23 +266,20 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     if (isLikertEligible()) {
       setStep('common-likert');
       setCommonIndex(0);
+      setTimeout(() => {
+        saveProgressIncrementally(likertAnswers, interviewAnswers, true);
+      }, 50);
     } else if (isInterviewEligible()) {
-      setStep('interview');
-      setInterviewIndex(0);
+      setShowCameraPopup(true);
     } else {
       setStep('review');
+      setTimeout(() => {
+        saveProgressIncrementally(likertAnswers, interviewAnswers, true);
+      }, 50);
     }
   };
 
   const handleCommonNext = () => {
-    const q = COMMON_LIKERT_QUESTIONS[commonIndex];
-    const ans = likertAnswers[q.id];
-
-    if (ans === undefined) {
-      setValidationError('Vui lòng trả lời câu hỏi này trước khi tiếp tục.');
-      return;
-    }
-
     setValidationError(null);
     if (commonIndex < COMMON_LIKERT_QUESTIONS.length - 1) {
       setCommonIndex(commonIndex + 1);
@@ -216,6 +287,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       setStep('group-likert');
       setGroupIndex(0);
     }
+    saveProgressIncrementally();
   };
 
   const handleCommonBack = () => {
@@ -225,6 +297,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     } else {
       setStep('consent');
     }
+    saveProgressIncrementally();
   };
 
   const handleGroupNext = () => {
@@ -232,51 +305,44 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     const q = questions[groupIndex];
     const ans = likertAnswers[q.id];
 
-    if (q.type === 'likert') {
-      if (ans === undefined) {
-        setValidationError('Vui lòng trả lời câu hỏi này trước khi tiếp tục.');
-        return;
-      }
-    } else if (q.type === 'checkbox') {
-      const selectedList = (ans as string[]) || [];
-      const hasOther = selectedList.includes('Khác');
-      
-      // Check min selection count (bypass if user select custom opinion)
-      if (q.minSelect && selectedList.length < q.minSelect && !hasOther) {
-        setValidationError(`Vui lòng chọn tối thiểu ${q.minSelect} phương án để tiếp tục.`);
-        return;
-      }
-      
-      // Check max selection count
-      if (q.maxSelect && selectedList.length > q.maxSelect) {
-        setValidationError(`Vui lòng chỉ chọn tối đa ${q.maxSelect} phương án.`);
-        return;
-      }
-
-      // Check if "Khác" checkbox is selected and make sure the text input is filled
-      if (selectedList.includes('Khác')) {
-        const otherText = ((likertAnswers[q.id + '_other'] as string) || '').trim();
-        if (!otherText) {
-          setValidationError('Vui lòng nhập nội dung chi tiết cho lựa chọn "Khác".');
+    if (ans !== undefined) {
+      if (q.type === 'checkbox') {
+        const selectedList = (ans as string[]) || [];
+        const hasOther = selectedList.includes('Khác');
+        
+        // Check min selection count (bypass if user select custom opinion)
+        if (q.minSelect && selectedList.length < q.minSelect && !hasOther && selectedList.length > 0) {
+          setValidationError(lang === 'vi' ? `Vui lòng chọn tối thiểu ${q.minSelect} phương án để tiếp tục.` : `Please select at least ${q.minSelect} options.`);
           return;
         }
-      }
-    } else if (q.type === 'textarea') {
-      if (q.required && !((ans as string) || '').trim()) {
-        setValidationError('Vui lòng nhập câu trả lời của bạn.');
-        return;
+        
+        // Check max selection count
+        if (q.maxSelect && selectedList.length > q.maxSelect) {
+          setValidationError(lang === 'vi' ? `Vui lòng chỉ chọn tối đa ${q.maxSelect} phương án.` : `Please select at most ${q.maxSelect} options.`);
+          return;
+        }
+
+        // Check if "Khác" checkbox is selected and make sure the text input is filled
+        if (selectedList.includes('Khác')) {
+          const otherText = ((likertAnswers[q.id + '_other'] as string) || '').trim();
+          if (!otherText) {
+            setValidationError(lang === 'vi' ? 'Vui lòng nhập nội dung chi tiết cho lựa chọn "Khác".' : 'Please enter details for the "Other" option.');
+            return;
+          }
+        }
       }
     }
 
     setValidationError(null);
     if (groupIndex < questions.length - 1) {
       setGroupIndex(groupIndex + 1);
+      saveProgressIncrementally();
     } else {
       if (isInterviewEligible()) {
-        setStep('interview');
-        setInterviewIndex(0);
+        setShowCameraPopup(true);
       } else {
         setStep('review');
+        saveProgressIncrementally();
       }
     }
   };
@@ -289,27 +355,18 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       setStep('common-likert');
       setCommonIndex(COMMON_LIKERT_QUESTIONS.length - 1);
     }
+    saveProgressIncrementally();
   };
 
   const handleInterviewNext = () => {
     const questions = INTERVIEW_QUESTIONS[selectedGroup] || [];
-    const q = questions[interviewIndex];
-    const ans = interviewAnswers[q.id];
-
-    const hasText = ans && ans.text && ans.text.trim().length > 0;
-    const hasAudio = ans && ans.audioUrl && ans.audioUrl.trim().length > 0;
-
-    if (!hasText && !hasAudio) {
-      setValidationError('Vui lòng nhập ý kiến đóng góp bằng chữ hoặc ghi âm câu trả lời trước khi tiếp tục.');
-      return;
-    }
-
     setValidationError(null);
     if (interviewIndex < questions.length - 1) {
       setInterviewIndex(interviewIndex + 1);
     } else {
       setStep('review');
     }
+    saveProgressIncrementally();
   };
 
   const handleInterviewBack = () => {
@@ -325,6 +382,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         setStep('consent');
       }
     }
+    saveProgressIncrementally();
   };
 
   const handleReviewBack = () => {
@@ -340,11 +398,14 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     } else {
       setStep('consent');
     }
+    saveProgressIncrementally();
   };
 
   const handleAnswerLikert = (qId: string, val: any) => {
-    setLikertAnswers((prev) => ({ ...prev, [qId]: val }));
+    const updated = { ...likertAnswers, [qId]: val };
+    setLikertAnswers(updated);
     setValidationError(null);
+    saveProgressIncrementally(updated, interviewAnswers);
   };
 
   const handleInterviewResponse = (qId: string, text: string, audioUrl: string | null) => {
@@ -371,7 +432,8 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             const blob = await res.blob();
             
             // Upload to Supabase Storage
-            const fileName = `${participantCode}_${qId}.wav`;
+            const fileExt = blob.type.includes('video') ? 'webm' : 'wav';
+            const fileName = `${participantCode}_${qId}.${fileExt}`;
             const publicUrl = await BrandSurveyService.uploadAudio(fileName, blob);
             
             if (publicUrl) {
@@ -474,14 +536,90 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   return (
     <div className={getContainerStyles()}>
       
-      {/* 1. Universal Top Header Title */}
+      {/* 0. Language Switcher Toggle */}
+      {step !== 'success' && (
+        <div className="flex justify-end max-w-md mx-auto mb-2 w-full z-45 shrink-0">
+          <button
+            type="button"
+            onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
+            className="px-3 py-1 text-[11px] font-black bg-white border border-slate-200 rounded-full hover:bg-slate-50 cursor-pointer shadow-xs select-none transition-all active:scale-95 text-slate-700 flex items-center gap-1.5"
+          >
+            {lang === 'vi' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}
+          </button>
+        </div>
+      )}
+      {/* Camera Consent Popup */}
+      {showCameraPopup && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl border border-slate-100 text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="h-12 w-12 bg-amber-50 border border-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xl mx-auto shadow-sm">
+              📷
+            </div>
+            <h3 className="text-base font-black text-slate-900">
+              {lang === 'vi' ? 'Quyền truy cập Camera' : 'Camera Access'}
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+              {lang === 'vi' 
+                ? 'Bạn có đồng ý bật camera trong quá trình phỏng vấn để hỗ trợ nghiên cứu không?' 
+                : 'Do you agree to turn on the camera during the interview to support the research?'}
+            </p>
+            <p className="text-xs text-slate-450 font-bold italic">
+              {lang === 'vi' ? 'Không bắt buộc.' : 'Optional.'}
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUseCamera(true);
+                  setConsentCamera('Đã bật camera');
+                  setShowCameraPopup(false);
+                  setStep('interview');
+                  setInterviewIndex(0);
+                  setTimeout(() => {
+                    saveProgressIncrementally(
+                      likertAnswers, 
+                      interviewAnswers, 
+                      true, 
+                      "Đã bật camera"
+                    );
+                  }, 50);
+                }}
+                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all active:scale-97 select-none"
+              >
+                {lang === 'vi' ? 'Đồng ý bật camera' : 'Agree to turn on camera'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUseCamera(false);
+                  setConsentCamera('Người dùng không bật camera');
+                  setShowCameraPopup(false);
+                  setStep('interview');
+                  setInterviewIndex(0);
+                  setTimeout(() => {
+                    saveProgressIncrementally(
+                      likertAnswers, 
+                      interviewAnswers, 
+                      true, 
+                      "Người dùng không bật camera"
+                    );
+                  }, 50);
+                }}
+                className="w-full h-11 bg-white border border-slate-250 text-slate-750 font-extrabold text-xs rounded-xl cursor-pointer hover:bg-slate-50 transition-all active:scale-97 select-none"
+              >
+                {lang === 'vi' ? 'Không đồng ý' : 'Disagree'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {step !== 'success' && (
         <div className="text-center space-y-4 mb-5 shrink-0">
-          <span className="inline-block text-[10px] font-black uppercase text-slate-400 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-200/80">
-            LUẬN VĂN NGHIÊN CỨU MỸ THUẬT ỨNG DỤNG
+          <span className="inline-block text-xs font-black uppercase text-slate-400 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-200/80">
+            {lang === 'vi' ? 'LUẬN VĂN NGHIÊN CỨU MỸ THUẬT ỨNG DỤNG' : 'APPLIED FINE ARTS RESEARCH THESIS'}
           </span>
           <h1 className="text-sm font-black text-slate-900 leading-normal max-w-md mx-auto">
-            {THESIS_METADATA.websiteTitle}
+            {lang === 'vi' ? THESIS_METADATA.websiteTitle : THESIS_METADATA.websiteTitleEn}
           </h1>
           {step !== 'welcome' && (
             <div className="font-mono text-xs text-slate-450 font-bold border-t border-slate-100 pt-1.5 mt-2">
@@ -503,40 +641,52 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <ShieldCheck className="h-5.5 w-5.5 text-amber-500" />
                 <h2 className="text-sm font-black text-slate-900 uppercase">
-                  {THESIS_METADATA.headerTitle}
+                  {lang === 'vi' ? THESIS_METADATA.headerTitle : THESIS_METADATA.headerTitleEn}
                 </h2>
               </div>
 
               {/* Research specifics */}
               <div className="space-y-3.5 text-xs text-slate-655 font-semibold leading-relaxed">
                 <div>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Đề tài:</span>
-                  <span className="text-slate-900 font-extrabold italic">{THESIS_METADATA.thesisName}</span>
+                  <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                    {lang === 'vi' ? 'Đề tài:' : 'Thesis:'}
+                  </span>
+                  <span className="text-slate-900 font-extrabold italic">
+                    {lang === 'vi' ? THESIS_METADATA.thesisName : THESIS_METADATA.thesisNameEn}
+                  </span>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="block text-[10px] font-bold uppercase text-slate-400">Học viên thực hiện:</span>
-                    <span className="text-slate-900 font-extrabold">{THESIS_METADATA.studentName}</span>
+                    <span className="block text-xs font-bold uppercase text-slate-400">
+                      {lang === 'vi' ? 'Học viên thực hiện:' : 'Researcher:'}
+                    </span>
+                    <span className="text-slate-900 font-extrabold">
+                      {lang === 'vi' ? THESIS_METADATA.studentName : THESIS_METADATA.studentNameEn}
+                    </span>
                   </div>
                   <div>
-                    <span className="block text-[10px] font-bold uppercase text-slate-400">Cơ sở đào tạo:</span>
-                    <span className="text-slate-900 font-extrabold">{THESIS_METADATA.institution}</span>
+                    <span className="block text-xs font-bold uppercase text-slate-400">
+                      {lang === 'vi' ? 'Cơ sở đào tạo:' : 'Institution:'}
+                    </span>
+                    <span className="text-slate-900 font-extrabold">
+                      {lang === 'vi' ? THESIS_METADATA.institution : THESIS_METADATA.institutionEn}
+                    </span>
                   </div>
                 </div>
 
                 <div className="bg-slate-50 border border-slate-150 p-3.5 rounded-2xl space-y-1.5 text-slate-550 font-medium">
-                  {THESIS_METADATA.instructions.map((inst, i) => (
+                  {(lang === 'vi' ? THESIS_METADATA.instructions : THESIS_METADATA.instructionsEn).map((inst, i) => (
                     <p key={i}>• {inst}</p>
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[10px] border-t border-slate-100 pt-3">
+                <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-100 pt-3">
                   <div>
                     <span className="text-slate-400">Email:</span> <a href={`mailto:${THESIS_METADATA.contact.email}`} className="text-indigo-650 font-bold underline">{THESIS_METADATA.contact.email}</a>
                   </div>
                   <div>
-                    <span className="text-slate-400">Điện thoại:</span> <span className="text-slate-950 font-extrabold">{THESIS_METADATA.contact.phone}</span>
+                    <span className="text-slate-400">{lang === 'vi' ? 'Điện thoại:' : 'Phone:'}</span> <span className="text-slate-950 font-extrabold">{THESIS_METADATA.contact.phone}</span>
                   </div>
                 </div>
               </div>
@@ -549,7 +699,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 onClick={handleWelcomeNext}
                 className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-base rounded-2xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95 select-none"
               >
-                Sẵn sàng →
+                {t('ready')}
               </button>
             </div>
           </div>
@@ -562,14 +712,16 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             <div className={getCardStyles() + ' space-y-4'}>
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <Info className="h-5 w-5 text-slate-500" />
-                <h3 className="text-xs font-black uppercase text-slate-900">Thông tin người tham gia</h3>
+                <h3 className="text-xs font-black uppercase text-slate-900">
+                  {lang === 'vi' ? 'Thông tin người tham gia' : 'Participant Information'}
+                </h3>
               </div>
 
               <div className="space-y-4 text-sm font-semibold">
                 
                 {/* 5 Participant Groups Radio layout */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Nhóm đối tượng tham gia *</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('participantGroup')}</label>
                   <div className="flex flex-col gap-2">
                     {SURVEY_GROUPS.map((gp) => (
                       <label
@@ -588,7 +740,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                           className="h-4.5 w-4.5 accent-amber-500"
                         />
                         <div className="leading-tight text-xs font-extrabold">
-                          {gp.name} <span className="opacity-80 font-mono">({gp.code})</span>
+                          {lang === 'vi' ? gp.name : gp.nameEn} <span className="opacity-80 font-mono">({gp.code})</span>
                         </div>
                       </label>
                     ))}
@@ -597,7 +749,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
                 {/* Auto Generated Code display */}
                 <div className="p-3 bg-amber-50/50 border border-amber-200 rounded-2xl text-center">
-                  <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Mã người tham gia (Tự động):</span>
+                  <span className="text-xs font-black uppercase text-amber-800 tracking-wider">{t('participantCode')}</span>
                   <span className="block text-xl font-black text-slate-950 mt-0.5">{participantCode}</span>
                 </div>
 
@@ -605,26 +757,26 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 min-h-[2.5rem] flex items-end pb-1">
-                      Họ và tên (Không bắt buộc)
+                      {t('fullName')}
                     </label>
                     <input
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
+                      placeholder={lang === 'vi' ? 'Nguyễn Văn A' : 'John Doe'}
                       className="min-h-12 w-full border border-slate-250 px-4 rounded-xl text-xs font-bold text-slate-900 bg-white outline-none focus:border-slate-800"
                     />
                   </div>
                   
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 min-h-[2.5rem] flex items-end pb-1">
-                      Chức danh / Đơn vị (Không bắt buộc)
+                      {t('titleUnit')}
                     </label>
                     <input
                       type="text"
                       value={titleUnit}
                       onChange={(e) => setTitleUnit(e.target.value)}
-                      placeholder="Võ sư / Nhà nghiên cứu..."
+                      placeholder={lang === 'vi' ? 'Võ sư / Nhà nghiên cứu...' : 'Martial artist / Researcher...'}
                       className="min-h-12 w-full border border-slate-250 px-4 rounded-xl text-xs font-bold text-slate-900 bg-white outline-none focus:border-slate-800"
                     />
                   </div>
@@ -632,12 +784,12 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
                 {/* Participation form selection */}
                 <div className="space-y-2 pt-1.5">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Hình thức tham gia *</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('participationForm')}</label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {[
-                      { value: 'Bảng hỏi khảo sát', label: 'Bảng hỏi khảo sát' },
-                      { value: 'Phỏng vấn', label: 'Phỏng vấn', disabled: selectedGroup === 'KG-ĐT' },
-                      { value: 'Cả hai hình thức', label: 'Cả hai hình thức', disabled: selectedGroup === 'KG-ĐT' }
+                      { value: 'Bảng hỏi khảo sát', label: lang === 'vi' ? 'Bảng hỏi khảo sát' : 'Survey Questionnaire' },
+                      { value: 'Phỏng vấn', label: lang === 'vi' ? 'Phỏng vấn' : 'In-depth Interview', disabled: selectedGroup === 'KG-ĐT' },
+                      { value: 'Cả hai hình thức', label: lang === 'vi' ? 'Cả hai hình thức' : 'Both formats', disabled: selectedGroup === 'KG-ĐT' }
                     ].map((item) => (
                       <label
                         key={item.value}
@@ -663,8 +815,8 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     ))}
                   </div>
                   {selectedGroup === 'KG-ĐT' && (
-                    <p className="text-[10px] text-amber-600 font-bold">
-                      * Nhóm Công chúng, khán giả (KG-ĐT) chỉ áp dụng hình thức Bảng hỏi khảo sát.
+                    <p className="text-xs text-amber-600 font-bold">
+                      {t('publicWarning')}
                     </p>
                   )}
                 </div>
@@ -679,14 +831,14 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 onClick={() => setStep('welcome')}
                 className="w-2/5 h-13 bg-white border border-slate-250 text-slate-750 font-extrabold text-sm rounded-2xl cursor-pointer hover:bg-slate-50 active:scale-97 select-none"
               >
-                Quay lại
+                {t('back')}
               </button>
               <button
                 type="button"
                 onClick={handleInfoNext}
                 className="w-3/5 h-13 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-2xl cursor-pointer active:scale-97 select-none shadow-sm"
               >
-                Tiếp tục →
+                {t('continue')}
               </button>
             </div>
           </div>
@@ -699,7 +851,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             <div className={getCardStyles() + ' space-y-4'}>
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <CheckSquare className="h-5 w-5 text-slate-500" />
-                <h3 className="text-xs font-black uppercase text-slate-900">Xác nhận đồng thuận</h3>
+                <h3 className="text-xs font-black uppercase text-slate-900">{t('consentTitle')}</h3>
               </div>
 
               {/* Validation warning */}
@@ -720,7 +872,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     onChange={(e) => setConsentInfo(e.target.checked)}
                     className="h-4.5 w-4.5 shrink-0 mt-0.5"
                   />
-                  <span>Tôi xác nhận đã được thông tin về mục đích nghiên cứu và tự nguyện tham gia. *</span>
+                  <span>{t('consentInfo')}</span>
                 </label>
 
                 {/* 2. Data consent check */}
@@ -731,7 +883,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     onChange={(e) => setConsentData(e.target.checked)}
                     className="h-4.5 w-4.5 shrink-0 mt-0.5"
                   />
-                  <span>Tôi đồng ý để dữ liệu được sử dụng cho luận văn dưới dạng mã hóa. *</span>
+                  <span>{t('consentData')}</span>
                 </label>
 
                 {/* 3. Citation method check (New requirement) */}
@@ -742,13 +894,13 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     onChange={(e) => setConsentCitation(e.target.checked)}
                     className="h-4.5 w-4.5 shrink-0 mt-0.5"
                   />
-                  <span>Cách trích dẫn ý kiến: Chỉ sử dụng dữ liệu tổng hợp, không trích dẫn trực tiếp *</span>
+                  <span>{t('consentCitation')}</span>
                 </label>
 
                 {/* 4. Microphone Recording Consent */}
                 {participationForm !== 'Bảng hỏi khảo sát' && selectedGroup !== 'KG-ĐT' ? (
                   <div className="bg-slate-50 border border-slate-150 p-3.5 rounded-2xl space-y-2 mt-1">
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-450">Tùy chọn ghi âm phỏng vấn:</span>
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-450">{t('recordOption')}</span>
                     <div className="flex flex-col gap-2">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -758,7 +910,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                           onChange={() => setConsentRecord('yes')}
                           className="h-4.5 w-4.5"
                         />
-                        <span className="text-slate-800 font-bold">Tôi đồng ý cho ghi âm phỏng vấn.</span>
+                        <span className="text-slate-800 font-bold">{t('recordYes')}</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -768,13 +920,13 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                           onChange={() => setConsentRecord('no')}
                           className="h-4.5 w-4.5"
                         />
-                        <span className="text-slate-800 font-bold">Tôi không đồng ý cho ghi âm phỏng vấn.</span>
+                        <span className="text-slate-800 font-bold">{t('recordNo')}</span>
                       </label>
                     </div>
                   </div>
                 ) : (
                   <div className="bg-slate-100/70 p-3.5 rounded-2xl border border-slate-200/50 space-y-1.5">
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-450">Tùy chọn ghi âm phỏng vấn:</span>
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-450">{t('recordOption')}</span>
                     <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
                       <input
                         type="radio"
@@ -782,7 +934,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                         checked={consentRecord === 'na'}
                         className="h-4.5 w-4.5"
                       />
-                      <span className="text-slate-500 font-bold">Không áp dụng, tôi chỉ tham gia bảng hỏi.</span>
+                      <span className="text-slate-500 font-bold">{t('recordNa')}</span>
                     </label>
                   </div>
                 )}
@@ -797,7 +949,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 onClick={() => setStep('info')}
                 className="w-2/5 h-13 bg-white border border-slate-250 text-slate-750 font-extrabold text-sm rounded-2xl cursor-pointer hover:bg-slate-50 active:scale-97 select-none"
               >
-                Quay lại
+                {t('back')}
               </button>
               
               <button
@@ -805,19 +957,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 onClick={handleConsentNext}
                 className="w-3/5 h-13 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm rounded-2xl cursor-pointer active:scale-97 select-none shadow-sm"
               >
-                Bắt đầu khảo sát →
+                {t('startSurvey')}
               </button>
             </div>
           </div>
         )}
-
-        {/* STEP B: COMMON LIKERT STEPPER QUESTIONS */}
         {step === 'common-likert' && COMMON_LIKERT_QUESTIONS[commonIndex] && (
           <div className="space-y-4">
             
             {/* Header info */}
-            <div className="flex justify-between items-center text-[10px] font-black uppercase text-indigo-700 tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-150 w-fit">
-              <span>Phần A · Khảo sát ý kiến chung ({commonIndex + 1} / {COMMON_LIKERT_QUESTIONS.length})</span>
+            <div className="flex justify-center w-full">
+              <div className="text-xs font-black uppercase text-indigo-705 tracking-wider bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-150 text-center">
+                <span>{lang === 'vi' ? 'Phần A · Khảo sát ý kiến chung' : 'Part A · General Survey'} ({commonIndex + 1} / {COMMON_LIKERT_QUESTIONS.length})</span>
+              </div>
             </div>
 
             {/* Error alerts */}
@@ -834,20 +986,20 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between items-start gap-4">
                   <h3>
-                    {renderQuestionText(COMMON_LIKERT_QUESTIONS[commonIndex].text)}
+                    {renderQuestionText(lang === 'vi' ? COMMON_LIKERT_QUESTIONS[commonIndex].text : (COMMON_LIKERT_QUESTIONS[commonIndex].textEn || COMMON_LIKERT_QUESTIONS[commonIndex].text))}
                   </h3>
 
                   <button
                     type="button"
-                    onClick={() => readTextAloud(COMMON_LIKERT_QUESTIONS[commonIndex].text)}
+                    onClick={() => readTextAloud(lang === 'vi' ? COMMON_LIKERT_QUESTIONS[commonIndex].text : (COMMON_LIKERT_QUESTIONS[commonIndex].textEn || COMMON_LIKERT_QUESTIONS[commonIndex].text))}
                     className="p-2 border border-slate-200 hover:bg-slate-100 rounded-full shrink-0 text-slate-500 cursor-pointer active:scale-95"
-                    title="Đọc câu hỏi"
+                    title={lang === 'vi' ? 'Đọc câu hỏi' : 'Read question'}
                   >
                     <Volume2 className="h-4.5 w-4.5" />
                   </button>
                 </div>
-                <div className="border-b border-slate-150 pb-2 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  <span>🔊 Nhấn loa để nghe đọc câu hỏi</span>
+                <div className="border-b border-slate-150 pb-2 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wide">
+                  <span>{t('playAudio')}</span>
                 </div>
               </div>
 
@@ -856,6 +1008,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 <div className="grid grid-cols-5 gap-2.5">
                   {LIKERT_SCALE_OPTIONS.map((opt) => {
                     const isSelected = likertAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id] === opt.value;
+                    const labelText = lang === 'vi' ? opt.label : opt.labelEn;
                     return (
                       <button
                         key={opt.value}
@@ -872,7 +1025,9 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                         }`}
                       >
                         <span className="text-3xl leading-none">{opt.emoji}</span>
-                        <span className="text-[10px] font-bold tracking-tight mt-2 text-slate-500 leading-none">{opt.label}</span>
+                        <span className="text-[11.5px] font-bold tracking-tight mt-2 text-slate-500 leading-tight">
+                          {renderLikertLabel(labelText)}
+                        </span>
                         <span className="text-xs font-black font-mono mt-1 leading-none">{opt.value}</span>
                       </button>
                     );
@@ -888,7 +1043,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   onClick={handleCommonBack}
                   className="px-6 py-3.5 rounded-2xl border border-slate-250 text-slate-750 text-xs font-extrabold hover:bg-slate-50 active:scale-97 select-none"
                 >
-                  ← Quay lại
+                  ← {t('back')}
                 </button>
 
                 <button
@@ -896,7 +1051,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   onClick={handleCommonNext}
                   className="px-6 py-3.5 rounded-2xl bg-slate-900 text-white text-xs font-extrabold hover:bg-slate-800 active:scale-97 select-none"
                 >
-                  Tiếp tục →
+                  {t('continue')}
                 </button>
               </div>
 
@@ -908,8 +1063,11 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         {step === 'group-likert' && GROUP_LIKERT_QUESTIONS[selectedGroup]?.[groupIndex] && (
           <div className="space-y-4">
             
-            <div className="flex justify-between items-center text-[10px] font-black uppercase text-indigo-700 tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-150 w-fit">
-              <span>Phần B · Khảo sát theo nhóm {selectedGroup} ({groupIndex + 1} / {GROUP_LIKERT_QUESTIONS[selectedGroup].length})</span>
+            {/* Header info */}
+            <div className="flex justify-center w-full">
+              <div className="text-xs font-black uppercase text-indigo-705 tracking-wider bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-150 text-center">
+                <span>{lang === 'vi' ? 'Phần B · Khảo sát theo nhóm' : 'Part B · Group Survey'} {selectedGroup} ({groupIndex + 1} / {GROUP_LIKERT_QUESTIONS[selectedGroup].length})</span>
+              </div>
             </div>
 
             {/* Error alerts */}
@@ -925,19 +1083,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between items-start gap-4">
                   <h3>
-                    {renderQuestionText(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].text)}
+                    {renderQuestionText(lang === 'vi' ? GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].text : (GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].textEn || GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].text))}
                   </h3>
 
                   <button
                     type="button"
-                    onClick={() => readTextAloud(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].text)}
+                    onClick={() => readTextAloud(lang === 'vi' ? GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].text : (GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].textEn || GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].text))}
                     className="p-2 border border-slate-200 hover:bg-slate-100 rounded-full shrink-0 text-slate-500 cursor-pointer active:scale-95"
                   >
                     <Volume2 className="h-4.5 w-4.5" />
                   </button>
                 </div>
-                <div className="border-b border-slate-150 pb-2 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  <span>🔊 Nhấn loa để nghe đọc câu hỏi</span>
+                <div className="border-b border-slate-150 pb-2 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wide">
+                  <span>{t('playAudio')}</span>
                 </div>
               </div>
 
@@ -948,6 +1106,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   <div className="grid grid-cols-5 gap-2.5">
                     {LIKERT_SCALE_OPTIONS.map((opt) => {
                       const isSelected = likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] === opt.value;
+                      const labelText = lang === 'vi' ? opt.label : opt.labelEn;
                       return (
                         <button
                           key={opt.value}
@@ -964,7 +1123,9 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                           }`}
                         >
                           <span className="text-3xl leading-none">{opt.emoji}</span>
-                          <span className="text-[10px] font-bold tracking-tight mt-2 text-slate-500 leading-none">{opt.label}</span>
+                          <span className="text-[11.5px] font-bold tracking-tight mt-2 text-slate-500 leading-tight">
+                            {renderLikertLabel(labelText)}
+                          </span>
                           <span className="text-xs font-black font-mono mt-1 leading-none">{opt.value}</span>
                         </button>
                       );
@@ -975,7 +1136,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 /* Checkbox List for Multiple Choices */
                 <div className="space-y-3">
                   <div className="flex flex-col gap-2.5">
-                    {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].options?.map((opt) => {
+                    {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].options?.map((opt, idx) => {
                       const qId = GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id;
                       const selectedList: string[] = (likertAnswers[qId] as string[]) || [];
                       const isChecked = selectedList.includes(opt);
@@ -990,6 +1151,9 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                         handleAnswerLikert(qId, newList);
                       };
 
+                      const q = GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex];
+                      const optText = lang === 'vi' ? opt : (q.optionsEn?.[idx] || opt);
+
                       return (
                         <label
                           key={opt}
@@ -1003,7 +1167,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                             onChange={handleCheckboxToggle}
                             className="h-4.5 w-4.5 accent-amber-500 rounded-md shrink-0"
                           />
-                          <span className="text-xs font-bold leading-tight">{opt}</span>
+                          <span className="text-xs font-bold leading-tight">{optText}</span>
                         </label>
                       );
                     })}
@@ -1035,7 +1199,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                             }}
                             className="h-4.5 w-4.5 accent-amber-500 rounded-md shrink-0"
                           />
-                          <span className="text-xs font-bold leading-tight font-mono">Ý kiến khác</span>
+                          <span className="text-xs font-bold leading-tight">{t('otherOption')}</span>
                         </label>
 
                         {/* Text input when "Khác" is checked */}
@@ -1045,12 +1209,16 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                             value={(likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id + '_other'] as string) || ''}
                             onChange={(e) => {
                               const qId = GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id;
-                              setLikertAnswers((prev) => ({
-                                ...prev,
-                                [qId + '_other']: e.target.value
-                              }));
+                              setLikertAnswers((prev) => {
+                                const updated = {
+                                  ...prev,
+                                  [qId + '_other']: e.target.value
+                                };
+                                saveProgressIncrementally(updated, interviewAnswers);
+                                return updated;
+                              });
                             }}
-                            placeholder="Nhập nội dung khác của bạn tại đây..."
+                            placeholder={t('otherPlaceholder')}
                             className="w-full min-h-12 border border-slate-350 px-4 rounded-xl text-xs font-bold text-slate-900 bg-white outline-none focus:border-slate-800"
                           />
                         )}
@@ -1059,12 +1227,12 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   </div>
 
                   {/* Min / Max indicator labels */}
-                  <div className="text-[10px] text-slate-450 font-bold">
+                  <div className="text-xs text-slate-450 font-bold">
                     {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].minSelect && (
-                      <span className="block text-amber-700">* Yêu cầu chọn tối thiểu {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].minSelect} phương án.</span>
+                      <span className="block text-amber-700">{t('minSelect').replace('{count}', String(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].minSelect))}</span>
                     )}
                     {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].maxSelect && (
-                      <span className="block text-blue-700">* Có thể chọn tối đa {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].maxSelect} phương án.</span>
+                      <span className="block text-blue-700">{t('maxSelect').replace('{count}', String(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].maxSelect))}</span>
                     )}
                   </div>
                 </div>
@@ -1075,15 +1243,15 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     value={(likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] as string) || ''}
                     onChange={(e) => handleAnswerLikert(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id, e.target.value)}
                     rows={6}
-                    placeholder="Gõ ý kiến đóng góp của bạn vào đây..."
+                    placeholder={t('typeFeedback')}
                     className="w-full p-4 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 leading-relaxed font-semibold text-slate-750 resize-none bg-white"
                   />
                   
                   {/* Textarea voice recording optionally allowed */}
                   {consentRecord === 'yes' && (
                     <div className="border-t border-slate-100 pt-4 space-y-2">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Ghi âm đóng góp của bạn:
+                      <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                        {t('recordFeedback')}
                       </span>
                       <VoiceAnswerConversational
                         key={GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id}
@@ -1107,7 +1275,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   onClick={handleGroupBack}
                   className="px-6 py-3.5 rounded-2xl border border-slate-250 text-slate-750 text-xs font-extrabold hover:bg-slate-50 active:scale-97 select-none"
                 >
-                  ← Quay lại
+                  ← {t('back')}
                 </button>
 
                 <button
@@ -1115,7 +1283,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   onClick={handleGroupNext}
                   className="px-6 py-3.5 rounded-2xl bg-slate-900 text-white text-xs font-extrabold hover:bg-slate-800 active:scale-97 select-none"
                 >
-                  Tiếp tục →
+                  {t('continue')}
                 </button>
               </div>
 
@@ -1127,8 +1295,11 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         {step === 'interview' && INTERVIEW_QUESTIONS[selectedGroup]?.[interviewIndex] && (
           <div className="space-y-4">
             
-            <div className="flex justify-between items-center text-[10px] font-black uppercase text-indigo-700 tracking-wider bg-indigo-50 px-3 py-1 rounded-full border border-indigo-150 w-fit">
-              <span>Phần C · Phỏng vấn sâu nhóm {selectedGroup} ({interviewIndex + 1} / {INTERVIEW_QUESTIONS[selectedGroup].length})</span>
+            {/* Header info */}
+            <div className="flex justify-center w-full">
+              <div className="text-xs font-black uppercase text-indigo-755 tracking-wider bg-indigo-50 px-3.5 py-1.5 rounded-full border border-indigo-150 text-center">
+                <span>{lang === 'vi' ? 'Phần C · Phỏng vấn sâu nhóm' : 'Part C · In-depth Interview Group'} {selectedGroup} ({interviewIndex + 1} / {INTERVIEW_QUESTIONS[selectedGroup].length})</span>
+              </div>
             </div>
 
             {/* Error alerts */}
@@ -1144,19 +1315,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between items-start gap-4">
                   <h3>
-                    {renderQuestionText(INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].text)}
+                    {renderQuestionText(lang === 'vi' ? INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].text : (INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].textEn || INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].text))}
                   </h3>
 
                   <button
                     type="button"
-                    onClick={() => readTextAloud(INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].text)}
+                    onClick={() => readTextAloud(lang === 'vi' ? INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].text : (INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].textEn || INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].text))}
                     className="p-2 border border-slate-200 hover:bg-slate-100 rounded-full shrink-0 text-slate-500 cursor-pointer active:scale-95"
                   >
                     <Volume2 className="h-4.5 w-4.5" />
                   </button>
                 </div>
-                <div className="border-b border-slate-150 pb-2 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  <span>🔊 Bấm loa để nghe đọc câu hỏi (Không bắt buộc trả lời)</span>
+                <div className="border-b border-slate-150 pb-2 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wide">
+                  <span>{t('playAudioOptional')}</span>
                 </div>
               </div>
 
@@ -1170,18 +1341,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     interviewAnswers[INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].id]?.audioUrl || null
                   )}
                   rows={4}
-                  placeholder="Gõ ý kiến đóng góp của bạn vào đây..."
+                  placeholder={t('typeFeedback')}
                   className="w-full p-4 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 leading-relaxed font-semibold text-slate-700 resize-none"
                 />
 
                 {/* Voice Answering module (if consent given) */}
                 {consentRecord === 'yes' && (
                   <div className="border-t border-slate-100 pt-4 space-y-2">
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-450">
-                      Ghi âm giọng nói đóng góp phỏng vấn:
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-450">
+                      {useCamera ? (lang === 'vi' ? 'Ghi hình phỏng vấn:' : 'Video record interview:') : t('recordVoice')}
                     </span>
                     <VoiceAnswerConversational
                       key={INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].id}
+                      useCamera={useCamera}
                       onAudioConfirmed={(url, text) => {
                         const prevText = interviewAnswers[INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].id]?.text || '';
                         handleInterviewResponse(
@@ -1203,7 +1375,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   onClick={handleInterviewBack}
                   className="px-6 py-3.5 rounded-2xl border border-slate-250 text-slate-750 text-xs font-extrabold hover:bg-slate-50 active:scale-97 select-none"
                 >
-                  ← Quay lại
+                  ← {t('back')}
                 </button>
 
                 <button
@@ -1211,7 +1383,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   onClick={handleInterviewNext}
                   className="px-6 py-3.5 rounded-2xl bg-slate-900 text-white text-xs font-extrabold hover:bg-slate-800 active:scale-97 select-none"
                 >
-                  {interviewIndex === INTERVIEW_QUESTIONS[selectedGroup].length - 1 ? 'Xem lại phản hồi →' : 'Tiếp tục →'}
+                  {interviewIndex === INTERVIEW_QUESTIONS[selectedGroup].length - 1 ? (lang === 'vi' ? 'Xem lại phản hồi →' : 'Review responses →') : t('continue')}
                 </button>
               </div>
 
@@ -1223,55 +1395,79 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         {step === 'review' && (
           <div className="space-y-4 text-xs font-semibold text-slate-700">
             
-            <div className="flex justify-between items-center text-[10px] font-black uppercase text-emerald-700 tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-150 w-fit">
-              <span>Kiểm tra phản hồi của bạn</span>
+            <div className="flex justify-center w-full">
+              <div className="text-xs font-black uppercase text-emerald-705 tracking-wider bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-150 text-center">
+                <span>{lang === 'vi' ? 'Kiểm tra phản hồi của bạn' : 'Review Your Responses'}</span>
+              </div>
             </div>
 
             {/* Profile Overview card */}
             <div className={getCardStyles() + ' space-y-4'}>
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <ClipboardCheck className="h-5 w-5 text-slate-655" />
-                <h3 className="text-xs font-black uppercase text-slate-900">Thông tin người tham gia</h3>
+                <h3 className="text-xs font-black uppercase text-slate-900">
+                  {lang === 'vi' ? 'Thông tin người tham gia' : 'Participant Information'}
+                </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 leading-relaxed">
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Mã người tham gia:</span>
+                  <span className="block text-xs text-slate-400 font-bold uppercase">{t('participantCode')}</span>
                   <span className="text-slate-900 font-extrabold text-sm">{participantCode}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Nhóm:</span>
-                  <span className="text-slate-900 font-extrabold">{SURVEY_GROUPS.find((g) => g.code === selectedGroup)?.name}</span>
+                  <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Nhóm:' : 'Group:'}</span>
+                  <span className="text-slate-900 font-extrabold">
+                    {lang === 'vi'
+                      ? SURVEY_GROUPS.find((g) => g.code === selectedGroup)?.name
+                      : SURVEY_GROUPS.find((g) => g.code === selectedGroup)?.nameEn}
+                  </span>
                 </div>
                 {fullName && (
                   <div>
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">Họ và tên:</span>
+                    <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Họ và tên:' : 'Full name:'}</span>
                     <span className="text-slate-900 font-extrabold">{fullName}</span>
                   </div>
                 )}
                 {titleUnit && (
                   <div>
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">Chức danh / Đơn vị:</span>
+                    <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Chức danh / Đơn vị:' : 'Title/Unit:'}</span>
                     <span className="text-slate-900 font-extrabold">{titleUnit}</span>
                   </div>
                 )}
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Hình thức tham gia:</span>
-                  <span className="text-slate-900 font-extrabold">{participationForm}</span>
+                  <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Hình thức tham gia:' : 'Participation form:'}</span>
+                  <span className="text-slate-900 font-extrabold">
+                    {participationForm === 'Bảng hỏi khảo sát'
+                      ? (lang === 'vi' ? 'Bảng hỏi khảo sát' : 'Survey Questionnaire')
+                      : participationForm === 'Phỏng vấn'
+                      ? (lang === 'vi' ? 'Phỏng vấn' : 'In-depth Interview')
+                      : (lang === 'vi' ? 'Cả hai hình thức' : 'Both formats')}
+                  </span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Đồng thuận nghiên cứu:</span>
-                  <span className="text-slate-900 font-extrabold">Đã đồng ý</span>
+                  <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Đồng thuận nghiên cứu:' : 'Research consent:'}</span>
+                  <span className="text-slate-900 font-extrabold">{lang === 'vi' ? 'Đã đồng ý' : 'Agreed'}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Phương thức trích dẫn:</span>
-                  <span className="text-slate-900 font-extrabold">Chỉ sử dụng dữ liệu tổng hợp, không trích dẫn trực tiếp</span>
+                  <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Phương thức trích dẫn:' : 'Citation method:'}</span>
+                  <span className="text-slate-900 font-extrabold">{lang === 'vi' ? 'Chỉ sử dụng dữ liệu tổng hợp, không trích dẫn trực tiếp' : 'Use aggregated data only, no direct citation'}</span>
                 </div>
                 {participationForm !== 'Bảng hỏi khảo sát' && selectedGroup !== 'KG-ĐT' && (
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase">Đồng thuận ghi âm:</span>
-                    <span className="text-slate-900 font-extrabold">{consentRecord === 'yes' ? 'Đồng ý ghi âm' : 'Không ghi âm'}</span>
-                  </div>
+                  <>
+                    <div>
+                      <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Đồng thuận ghi âm:' : 'Audio recording consent:'}</span>
+                      <span className="text-slate-900 font-extrabold">{consentRecord === 'yes' ? (lang === 'vi' ? 'Đồng ý ghi âm' : 'Agreed to record') : (lang === 'vi' ? 'Không ghi âm' : 'No recording')}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-slate-400 font-bold uppercase">{lang === 'vi' ? 'Trạng thái camera:' : 'Camera status:'}</span>
+                      <span className="text-slate-900 font-extrabold">
+                        {useCamera 
+                          ? (lang === 'vi' ? 'Đã bật camera' : 'Camera enabled') 
+                          : (lang === 'vi' ? consentCamera : 'User did not turn on camera')}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1279,16 +1475,20 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             {/* Common Likert responses review card */}
             {isLikertEligible() && (
               <div className={getCardStyles() + ' space-y-4'}>
-                <h3 className="text-xs font-black uppercase text-slate-900 border-b border-slate-100 pb-2">A. Khảo sát ý kiến chung</h3>
+                <h3 className="text-xs font-black uppercase text-slate-900 border-b border-slate-100 pb-2">
+                  {lang === 'vi' ? 'A. Khảo sát ý kiến chung' : 'A. General Survey'}
+                </h3>
                 <div className="space-y-3">
                   {COMMON_LIKERT_QUESTIONS.map((q) => {
                     const ans = likertAnswers[q.id];
                     const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === ans);
+                    const qText = lang === 'vi' ? q.text : (q.textEn || q.text);
+                    const optLabel = opt ? (lang === 'vi' ? opt.label : opt.labelEn) : '';
                     return (
                       <div key={q.id} className="space-y-0.5">
-                        <p className="font-bold text-slate-800">{q.text}</p>
+                        <p className="font-bold text-slate-800">{qText}</p>
                         <p className="text-indigo-700 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
-                          {ans === null ? 'Không áp dụng / Khác' : `${opt?.emoji} ${opt?.label} (${ans}/5)`}
+                          {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
                         </p>
                       </div>
                     );
@@ -1300,18 +1500,22 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             {/* Group Likert responses review card */}
             {isLikertEligible() && (
               <div className={getCardStyles() + ' space-y-4'}>
-                <h3 className="text-xs font-black uppercase text-slate-900 border-b border-slate-100 pb-2">B. Khảo sát theo nhóm {selectedGroup}</h3>
+                <h3 className="text-xs font-black uppercase text-slate-900 border-b border-slate-100 pb-2">
+                  {lang === 'vi' ? `B. Khảo sát theo nhóm ${selectedGroup}` : `B. Group Survey ${selectedGroup}`}
+                </h3>
                 <div className="space-y-3">
                   {(GROUP_LIKERT_QUESTIONS[selectedGroup] || []).map((q) => {
                     const ans = likertAnswers[q.id];
+                    const qText = lang === 'vi' ? q.text : (q.textEn || q.text);
                     
                     if (q.type === 'likert') {
                       const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === ans);
+                      const optLabel = opt ? (lang === 'vi' ? opt.label : opt.labelEn) : '';
                       return (
                         <div key={q.id} className="space-y-0.5">
-                          <p className="font-bold text-slate-800">{q.text}</p>
-                          <p className="text-indigo-705 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
-                            {opt?.emoji} {opt?.label} ({ans}/5)
+                          <p className="font-bold text-slate-800">{qText}</p>
+                          <p className="text-indigo-755 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
+                            {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
                           </p>
                         </div>
                       );
@@ -1320,15 +1524,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                       const otherVal = likertAnswers[q.id + '_other'] as string;
                       return (
                         <div key={q.id} className="space-y-1">
-                          <p className="font-bold text-slate-850">{q.text}</p>
+                          <p className="font-bold text-slate-850">{qText}</p>
                           <div className="flex flex-wrap gap-1.5 pt-1">
-                            {list.map((item) => (
-                              <span key={item} className="text-amber-800 bg-amber-50 border border-amber-250 py-1 px-2.5 rounded-lg font-extrabold text-[10px]">
-                                {item === 'Khác' && otherVal ? `Ý kiến khác: ${otherVal}` : item}
-                              </span>
-                            ))}
+                            {list.map((item) => {
+                              const optIdx = q.options?.indexOf(item);
+                              const displayItem = optIdx !== undefined && optIdx >= 0 ? (lang === 'vi' ? item : (q.optionsEn?.[optIdx] || item)) : item;
+                              return (
+                                <span key={item} className="text-amber-800 bg-amber-50 border border-amber-250 py-1 px-2.5 rounded-lg font-extrabold text-[10px]">
+                                  {item === 'Khác' && otherVal ? `${lang === 'vi' ? 'Ý kiến khác' : 'Other opinion'}: ${otherVal}` : displayItem}
+                                </span>
+                              );
+                            })}
                             {list.length === 0 && (
-                              <span className="text-slate-400 italic font-semibold">(Không chọn lựa chọn nào)</span>
+                              <span className="text-slate-400 italic font-semibold">{lang === 'vi' ? '(Chưa chọn lựa chọn nào)' : '(No options selected)'}</span>
                             )}
                           </div>
                         </div>
@@ -1336,9 +1544,9 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     } else {
                       return (
                         <div key={q.id} className="space-y-1">
-                          <p className="font-bold text-slate-850">{q.text}</p>
+                          <p className="font-bold text-slate-850">{qText}</p>
                           <p className="text-slate-600 bg-slate-50 border border-slate-200 py-1.5 px-3 rounded-xl font-semibold italic">
-                            {ans ? `"${ans}"` : '(Trống)'}
+                            {ans ? `"${ans}"` : (lang === 'vi' ? '(Trống)' : '(Empty)')}
                           </p>
                         </div>
                       );
@@ -1352,22 +1560,33 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             {isInterviewEligible() && (
               <div className={getCardStyles() + ' space-y-4'}>
                 <h3 className="text-xs font-black uppercase text-slate-900 border-b border-slate-100 pb-2">
-                  {isLikertEligible() ? 'C. Ý kiến đóng góp phỏng vấn sâu' : 'A. Ý kiến đóng góp phỏng vấn sâu'}
+                  {isLikertEligible()
+                    ? (lang === 'vi' ? 'C. Ý kiến đóng góp phỏng vấn sâu' : 'C. In-depth Interview Feedback')
+                    : (lang === 'vi' ? 'A. Ý kiến đóng góp phỏng vấn sâu' : 'A. In-depth Interview Feedback')}
                 </h3>
                 <div className="space-y-4">
                   {(INTERVIEW_QUESTIONS[selectedGroup] || []).map((q) => {
                     const ans = interviewAnswers[q.id];
+                    const qText = lang === 'vi' ? q.text : (q.textEn || q.text);
                     return (
                       <div key={q.id} className="space-y-1.5">
-                        <p className="font-bold text-slate-800">{q.text}</p>
+                        <p className="font-bold text-slate-800">{qText}</p>
                         <div className="pl-3.5 border-l-2 border-slate-200 space-y-2">
                           <p className="text-slate-650 leading-relaxed font-semibold italic">
-                            {ans?.text ? `"${ans.text}"` : '(Không có câu trả lời viết)'}
+                            {ans?.text ? `"${ans.text}"` : (lang === 'vi' ? '(Không có câu trả lời bằng chữ)' : '(No written response)')}
                           </p>
                           {ans?.audioUrl && (
-                            <div className="flex items-center gap-2 pt-1 bg-slate-50 p-2 border border-slate-200 rounded-xl w-fit">
-                              <span className="text-[10px] text-slate-400 font-bold">Bản ghi âm:</span>
-                              <audio src={ans.audioUrl} controls className="h-7" />
+                            <div className="flex flex-col gap-2 pt-1 bg-slate-50 p-2.5 border border-slate-200 rounded-xl w-fit">
+                              <span className="text-[10px] text-slate-400 font-bold">
+                                {ans.audioUrl.toLowerCase().includes('.webm') || ans.audioUrl.toLowerCase().includes('.mp4') || ans.audioUrl.startsWith('blob:')
+                                  ? (lang === 'vi' ? 'Bản ghi hình phỏng vấn:' : 'Video recording:') 
+                                  : (lang === 'vi' ? 'Bản ghi âm:' : 'Audio recording:')}
+                              </span>
+                              {ans.audioUrl.toLowerCase().includes('.webm') || ans.audioUrl.toLowerCase().includes('.mp4') || ans.audioUrl.startsWith('blob:') ? (
+                                <video src={ans.audioUrl} controls playsInline className="h-28 rounded-lg max-w-xs bg-black" />
+                              ) : (
+                                <audio src={ans.audioUrl} controls className="h-7" />
+                              )}
                             </div>
                           )}
                         </div>
@@ -1385,7 +1604,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 onClick={handleReviewBack}
                 className="w-full sm:flex-1 h-13 bg-white border border-slate-250 text-slate-700 font-extrabold text-sm rounded-2xl cursor-pointer hover:bg-slate-50 active:scale-97 select-none"
               >
-                ← Quay lại chỉnh sửa
+                ← {lang === 'vi' ? 'Quay lại chỉnh sửa' : 'Go back and edit'}
               </button>
 
               <button
@@ -1396,13 +1615,12 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   isSubmitting ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 'bg-slate-900 hover:bg-slate-800 text-white'
                 }`}
               >
-                {isSubmitting ? 'Đang gửi khảo sát...' : 'Gửi khảo sát'}
+                {isSubmitting ? (lang === 'vi' ? 'Đang gửi khảo sát...' : 'Submitting responses...') : (lang === 'vi' ? 'Gửi khảo sát' : 'Submit survey')}
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP F: SUCCESS SCREEN */}
         {step === 'success' && (
           <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 md:p-8 text-center space-y-6 max-w-sm mx-auto shadow-sm animate-in fade-in duration-200">
             <div className="h-16 w-16 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full flex items-center justify-center text-3xl mx-auto shadow-sm">
@@ -1410,22 +1628,28 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
             </div>
             
             <div className="space-y-2">
-              <h1 className="text-2xl font-black text-slate-900 leading-tight">Hoàn thành!</h1>
+              <h1 className="text-2xl font-black text-slate-900 leading-tight">
+                {lang === 'vi' ? 'Hoàn thành!' : 'Completed!'}
+              </h1>
               <p className="text-base text-slate-700 font-extrabold">
-                Cảm ơn đã khảo sát
+                {lang === 'vi' ? 'Cảm ơn đã khảo sát' : 'Thank you for participating'}
               </p>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Phản hồi khảo sát của bạn đã được lưu giữ thành công để phục vụ công tác nghiên cứu luận văn.
+                {lang === 'vi' 
+                  ? 'Phản hồi khảo sát của bạn đã được lưu giữ thành công để phục vụ công tác nghiên cứu luận văn.' 
+                  : 'Your survey responses have been successfully saved for research purposes.'}
               </p>
             </div>
 
             <div className="py-3.5 px-5 bg-slate-50 border border-slate-200 rounded-2xl w-fit mx-auto">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Mã người tham gia của bạn:</span>
+              <span className="text-xs font-black uppercase text-slate-400 tracking-wider block">
+                {lang === 'vi' ? 'Mã người tham gia của bạn:' : 'Your participant code:'}
+              </span>
               <span className="text-xl font-black text-slate-950 block mt-0.5">{participantCode}</span>
             </div>
 
-            <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
-              Bạn có thể đóng tab trình duyệt này an toàn.
+            <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+              {lang === 'vi' ? 'Bạn có thể đóng tab trình duyệt này an toàn.' : 'You can safely close this browser tab.'}
             </p>
           </div>
         )}
@@ -1444,8 +1668,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
       {/* 4. ALWAYS RENDERED PRIVACY STATEMENT FOOTER (OUTSIDE CARD CONTAINER) */}
       <footer className="text-center pt-5 shrink-0 border-t border-slate-200/50 mt-5">
-        <p className="text-[10px] text-slate-450 font-black italic max-w-md mx-auto leading-relaxed">
-          *Ghi chú: Người tham gia có quyền dừng tham gia hoặc yêu cầu không sử dụng thông tin nhận diện cá nhân trong luận văn.
+        <p className="text-xs text-slate-455 font-black italic max-w-md mx-auto leading-relaxed">
+          {lang === 'vi' 
+            ? '*Ghi chú: Người tham gia có quyền dừng tham gia hoặc yêu cầu không sử dụng thông tin nhận diện cá nhân trong luận văn.' 
+            : '*Note: Participants have the right to withdraw or request that their personal identity not be used in the thesis.'}
         </p>
       </footer>
 

@@ -78,6 +78,7 @@ export interface Participant {
   participationForm: 'Bảng hỏi khảo sát' | 'Phỏng vấn' | 'Cả hai hình thức';
   consentAgreed: boolean;
   consentRecord: boolean | null; // null for non-interview groups
+  consentCamera?: string; // "Đã bật camera" or "Người dùng không bật camera"
   createdAt: string;
 }
 

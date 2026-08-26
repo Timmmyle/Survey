@@ -183,6 +183,7 @@ export class BrandSurveyService {
           participation_form: submission.participant.participationForm,
           consent_agreed: submission.participant.consentAgreed,
           consent_record: submission.participant.consentRecord,
+          consent_camera: submission.participant.consentCamera || null,
           likert_answers: submission.likertAnswers,
           interview_answers: submission.interviewAnswers,
           submitted_at: new Date().toISOString()
@@ -190,7 +191,7 @@ export class BrandSurveyService {
 
         const { error } = await supabase
           .from('lan_su_rong_submissions')
-          .insert(row);
+          .upsert(row, { onConflict: 'participant_code' });
         
         if (error) throw error;
         console.log('Successfully saved submission to Supabase.');
@@ -202,9 +203,14 @@ export class BrandSurveyService {
 
     this.initialize();
     
-    // Save submission
+    // Save submission (update if exists, otherwise push)
     const submissions = this.getSubmissionsLocal();
-    submissions.push(submission);
+    const existingIndex = submissions.findIndex((s) => s.participant.code === submission.participant.code);
+    if (existingIndex >= 0) {
+      submissions[existingIndex] = submission;
+    } else {
+      submissions.push(submission);
+    }
     localStorage.setItem(STORAGE_KEYS.BRAND_SUBMISSIONS, JSON.stringify(submissions));
 
     // Increment corresponding group counter
@@ -227,7 +233,7 @@ export class BrandSurveyService {
       const { data, error } = await supabase.storage
         .from('lan_su_rong_audios')
         .upload(`interviews/${cleanFileName}`, audioBlob, {
-          contentType: 'audio/wav',
+          contentType: audioBlob.type || 'audio/wav',
           cacheControl: '3600',
           upsert: true
         });
@@ -267,6 +273,7 @@ export class BrandSurveyService {
             participationForm: row.participation_form,
             consentAgreed: row.consent_agreed,
             consentRecord: row.consent_record,
+            consentCamera: row.consent_camera || undefined,
             createdAt: new Date(row.submitted_at).toLocaleString('vi-VN'),
           },
           likertAnswers: row.likert_answers,

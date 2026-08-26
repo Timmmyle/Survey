@@ -10,7 +10,7 @@ import {
   GROUP_LIKERT_QUESTIONS,
   INTERVIEW_QUESTIONS,
 } from '../../data/surveyData';
-import { BarChart3, Users, FolderOpen, Headphones, X, RotateCcw, Play, CheckCircle2, ChevronRight, User, MessageSquare, Loader2 } from 'lucide-react';
+import { BarChart3, Users, FolderOpen, Headphones, X, RotateCcw, Play, CheckCircle2, ChevronRight, User, MessageSquare, Loader2, Download } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const [submissions, setSubmissions] = useState<BrandSurveySubmission[]>([]);
@@ -418,6 +418,14 @@ export const AdminDashboard: React.FC = () => {
                       {selectedSubmission.participant.consentRecord === true ? 'Có đồng ý ghi âm' : selectedSubmission.participant.consentRecord === false ? 'Không đồng ý ghi âm' : 'Không áp dụng'}
                     </span>
                   </div>
+                  {selectedSubmission.participant.consentCamera && (
+                    <div>
+                      <span className="text-slate-400 font-bold uppercase text-[9px] block">Đồng thuận camera:</span>
+                      <span className="text-slate-900 font-extrabold">
+                        {selectedSubmission.participant.consentCamera}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -509,11 +517,41 @@ export const AdminDashboard: React.FC = () => {
                               {ans?.text ? `"${ans.text}"` : '(Không có câu trả lời viết)'}
                             </p>
                             {ans?.audioUrl && (
-                              <div className="flex items-center gap-2 pt-1 bg-slate-50 p-2 border border-slate-200 rounded-xl w-fit">
+                              <div className="flex flex-col gap-2 pt-1 bg-slate-50 p-2.5 border border-slate-200 rounded-xl w-fit">
                                 <span className="text-[10px] text-slate-400 font-bold flex items-center gap-0.5">
-                                  <Headphones className="h-3.5 w-3.5" /> Bản ghi âm:
+                                  {ans.audioUrl.toLowerCase().includes('.webm') || ans.audioUrl.toLowerCase().includes('.mp4') || ans.audioUrl.startsWith('blob:') ? (
+                                    <>📹 Bản ghi hình phỏng vấn:</>
+                                  ) : (
+                                    <><Headphones className="h-3.5 w-3.5" /> Bản ghi âm:</>
+                                  )}
                                 </span>
-                                <audio src={ans.audioUrl} controls className="h-7" />
+                                {ans.audioUrl.toLowerCase().includes('.webm') || ans.audioUrl.toLowerCase().includes('.mp4') || ans.audioUrl.startsWith('blob:') ? (
+                                  <div className="flex flex-col gap-1.5">
+                                    <video src={ans.audioUrl} controls playsInline className="h-32 rounded-lg bg-black" />
+                                    <a
+                                      href={ans.audioUrl}
+                                      download={`interview_${selectedSubmission.participant.code}_${q.id}.webm`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-[9px] font-black uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md w-fit transition-all border border-indigo-150 cursor-pointer"
+                                    >
+                                      <Download className="h-3 w-3" /> Tải video về
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-1.5">
+                                    <audio src={ans.audioUrl} controls className="h-7" />
+                                    <a
+                                      href={ans.audioUrl}
+                                      download={`interview_${selectedSubmission.participant.code}_${q.id}.wav`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-[9px] font-black uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md w-fit transition-all border border-indigo-150 cursor-pointer"
+                                    >
+                                      <Download className="h-3 w-3" /> Tải ghi âm về
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
