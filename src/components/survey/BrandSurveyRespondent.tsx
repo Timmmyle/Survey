@@ -23,6 +23,11 @@ interface BrandSurveyRespondentProps {
 
 type FlowStep = 'welcome' | 'info' | 'consent' | 'common-likert' | 'group-likert' | 'interview' | 'review' | 'success';
 
+const cleanAudioText = (text: string): string => {
+  if (!text) return '';
+  return text.replace(/\[Ghi âm:\s*(.*?)\]/g, '$1').trim();
+};
+
 export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   onBackToAdmin,
 }) => {
@@ -616,7 +621,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       {step !== 'success' && (
         <div className="text-center space-y-4 mb-5 shrink-0">
           <span className="inline-block text-xs font-black uppercase text-slate-400 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-200/80">
-            {lang === 'vi' ? 'LUẬN VĂN NGHIÊN CỨU MỸ THUẬT ỨNG DỤNG' : 'APPLIED FINE ARTS RESEARCH THESIS'}
+            {lang === 'vi' ? 'KHẢO SÁT PHỤC VỤ LUẬN VĂN THẠC SĨ MỸ THUẬT ỨNG DỤNG' : 'SURVEY FOR APPLIED FINE ARTS MASTER\'S THESIS'}
           </span>
           <h1 className="text-sm font-black text-slate-900 leading-normal max-w-md mx-auto">
             {lang === 'vi' ? THESIS_METADATA.websiteTitle : THESIS_METADATA.websiteTitleEn}
@@ -675,9 +680,9 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-150 p-3.5 rounded-2xl space-y-1.5 text-slate-550 font-medium">
+                <div className="bg-slate-50 border border-slate-150 p-4 rounded-2xl space-y-3.5 text-slate-550 font-medium text-[12.5px] leading-relaxed">
                   {(lang === 'vi' ? THESIS_METADATA.instructions : THESIS_METADATA.instructionsEn).map((inst, i) => (
-                    <p key={i}>• {inst}</p>
+                    <p key={i} className="indent-6 text-justify">{inst}</p>
                   ))}
                 </div>
 
@@ -1259,7 +1264,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                           const prevText = (likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] as string) || '';
                           handleAnswerLikert(
                             GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id,
-                            text ? `${prevText} [Ghi âm: ${text}]`.trim() : prevText
+                            text ? `${prevText} ${text}`.trim() : prevText
                           );
                         }}
                       />
@@ -1358,7 +1363,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                         const prevText = interviewAnswers[INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].id]?.text || '';
                         handleInterviewResponse(
                           INTERVIEW_QUESTIONS[selectedGroup][interviewIndex].id,
-                          text ? `${prevText} [Ghi âm: ${text}]`.trim() : prevText,
+                          text ? `${prevText} ${text}`.trim() : prevText,
                           url
                         );
                       }}
@@ -1573,7 +1578,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                         <p className="font-bold text-slate-800">{qText}</p>
                         <div className="pl-3.5 border-l-2 border-slate-200 space-y-2">
                           <p className="text-slate-650 leading-relaxed font-semibold italic">
-                            {ans?.text ? `"${ans.text}"` : (lang === 'vi' ? '(Không có câu trả lời bằng chữ)' : '(No written response)')}
+                            {ans?.text ? cleanAudioText(ans.text) : (lang === 'vi' ? '(Không có câu trả lời bằng chữ)' : '(No written response)')}
                           </p>
                           {ans?.audioUrl && (
                             <div className="flex flex-col gap-2 pt-1 bg-slate-50 p-2.5 border border-slate-200 rounded-xl w-fit">

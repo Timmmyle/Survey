@@ -12,6 +12,11 @@ import {
 } from '../../data/surveyData';
 import { BarChart3, Users, FolderOpen, Headphones, X, RotateCcw, Play, CheckCircle2, ChevronRight, User, MessageSquare, Loader2, Download } from 'lucide-react';
 
+const cleanAudioText = (text: string): string => {
+  if (!text) return '';
+  return text.replace(/\[Ghi âm:\s*(.*?)\]/g, '$1').trim();
+};
+
 export const AdminDashboard: React.FC = () => {
   const [submissions, setSubmissions] = useState<BrandSurveySubmission[]>([]);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('All');
@@ -513,9 +518,20 @@ export const AdminDashboard: React.FC = () => {
                         <div key={q.id} className="space-y-1.5">
                           <p className="font-bold text-slate-800">{q.text}</p>
                           <div className="pl-3.5 border-l-2 border-slate-200 space-y-2">
-                            <p className="text-slate-600 italic font-semibold leading-relaxed">
-                              {ans?.text ? `"${ans.text}"` : '(Không có câu trả lời viết)'}
-                            </p>
+                             {ans?.text ? (
+                               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mt-1 space-y-1 w-fit max-w-xl">
+                                 <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wider block">
+                                   [Chuyển file ghi âm/ ghi hình thành text]
+                                 </span>
+                                 <p className="text-xs text-slate-750 font-semibold leading-relaxed">
+                                   {cleanAudioText(ans.text)}
+                                 </p>
+                               </div>
+                             ) : (
+                               <p className="text-slate-500 italic text-xs leading-relaxed">
+                                 (Không có câu trả lời viết)
+                               </p>
+                             )}
                             {ans?.audioUrl && (
                               <div className="flex flex-col gap-2 pt-1 bg-slate-50 p-2.5 border border-slate-200 rounded-xl w-fit">
                                 <span className="text-[10px] text-slate-400 font-bold flex items-center gap-0.5">

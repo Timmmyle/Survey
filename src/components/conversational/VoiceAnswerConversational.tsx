@@ -172,7 +172,7 @@ export const VoiceAnswerConversational: React.FC<VoiceAnswerConversationalProps>
 
   const handleConfirm = () => {
     setIsConfirmed(true);
-    const textReport = transcript.trim() || (useCamera ? '(Ghi hình phỏng vấn)' : '(Ghi âm giọng nói)');
+    const textReport = transcript.trim();
     onAudioConfirmed(audioUrl, textReport);
   };
 

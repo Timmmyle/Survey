@@ -37,18 +37,14 @@ export const THESIS_METADATA = {
     phone: "0931343497"
   },
   instructions: [
-    "Kính mời Ông/Bà tham gia khảo sát hoặc phỏng vấn nhằm thu thập ý kiến về yêu cầu nhận diện thương hiệu, khả năng ứng dụng hình tượng Lân thời Nguyễn và điều kiện sử dụng bộ nhận diện của Liên đoàn Lân Sư Rồng Việt Nam.",
-    "Người tham gia có thể trả lời bảng hỏi trong khoảng 5-10 phút và/hoặc tham gia phỏng vấn trong khoảng 30-45 phút, trực tiếp hoặc trực tuyến.",
-    "Việc tham gia hoàn toàn tự nguyện. Ông/Bà có quyền không trả lời bất kỳ câu hỏi nào hoặc dừng tham gia bất cứ lúc nào.",
-    "Thông tin thu thập chỉ dùng cho mục đích học thuật, được mã hóa và không công bố danh tính nếu không có sự đồng ý.",
-    "Bản ghi âm, nếu có, chỉ phục vụ việc đối chiếu và mã hóa nội dung phỏng vấn.",
+    "Kính mời Ông/Bà tham gia khảo sát/ phỏng vấn phục vụ luận văn cao học về thiết kế bộ nhận diện thương hiệu cho Liên đoàn Lân Sư Rồng Việt Nam. Nghiên cứu tìm hiểu nhu cầu và yêu cầu thực tế đối với bộ nhận diện của Liên đoàn; đồng thời xem xét việc lấy cảm hứng từ hình tượng lân trong mỹ thuật thời Nguyễn để phát triển giải pháp thiết kế phù hợp.",
+    "Ý kiến của Ông/Bà sẽ góp phần xác định tiêu chí thiết kế và đánh giá khả năng ứng dụng thực tế của giải pháp đề xuất. Bảng hỏi cần khoảng 5-7 phút. Phỏng vấn, nếu có, kéo dài khoảng 15-20 phút.",
+    "Việc tham gia hoàn toàn tự nguyện. Ông/Bà có thể bỏ qua bất kỳ câu hỏi nào hoặc dừng tham gia bất cứ lúc nào. Thông tin chỉ được sử dụng cho mục đích học thuật, được bảo mật và chỉ nêu danh tính khi có sự đồng ý của Ông/Bà. Bản ghi âm/ ghi hình, nếu có, chỉ dùng để tổng hợp nội dung phỏng vấn."
   ],
   instructionsEn: [
-    "We cordially invite you to participate in a survey or interview to gather feedback on brand identity requirements, the applicability of the Nguyen Dynasty Lion image, and the usage conditions of the Vietnam Lion and Dragon Dance Federation's brand identity.",
-    "Participants can complete the questionnaire in about 5-10 minutes and/or participate in an interview for about 30-45 minutes, in person or online.",
-    "Participation is entirely voluntary. You have the right to decline to answer any question or stop participating at any time.",
-    "The collected information will be used solely for academic purposes, encrypted, and your identity will not be disclosed without your consent.",
-    "Audio recordings, if any, will only serve for verification and transcription of the interview content."
+    "We cordially invite you to participate in a survey/interview for a master's thesis on designing the brand identity for the Vietnam Lion and Dragon Dance Federation. The research aims to explore the Federation's practical needs and requirements for its brand identity, while considering inspiration from the Nguyen Dynasty Lion (Lan) image to develop a suitable design solution.",
+    "Your opinions will contribute to defining the design criteria and evaluating the practical applicability of the proposed solution. The questionnaire takes about 5-7 minutes. The interview, if any, lasts about 15-20 minutes.",
+    "Participation is entirely voluntary. You may skip any question or withdraw at any time. The collected information will be used solely for academic purposes, kept strictly confidential, and your identity will only be disclosed with your consent. Audio/video recordings, if any, will only be used to summarize the interview content."
   ]
 };
 
