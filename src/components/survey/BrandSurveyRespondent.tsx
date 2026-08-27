@@ -28,6 +28,24 @@ const cleanAudioText = (text: string): string => {
   return text.replace(/\[Ghi âm:\s*(.*?)\]/g, '$1').trim();
 };
 
+const renderRequiredAsterisk = () => (
+  <span className="text-red-500 font-black">*</span>
+);
+
+const renderTextWithRedAsterisks = (text: string): React.ReactNode => {
+  if (!text) return text;
+  const parts = text.split(/(\*)/g);
+  return parts.map((part, i) =>
+    part === '*' ? <span key={i} className="text-red-500 font-black">*</span> : part
+  );
+};
+
+const scrollToTop = () => {
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }
+};
+
 export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   onBackToAdmin,
 }) => {
@@ -39,7 +57,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   const [consentCamera, setConsentCamera] = useState<string>('Người dùng không bật camera');
   
   // Participant Info state
-  const [selectedGroup, setSelectedGroup] = useState<string>('QT-LĐ');
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [participantCode, setParticipantCode] = useState<string>('');
   const [fullName, setFullName] = useState<string>('');
   const [titleUnit, setTitleUnit] = useState<string>('');
@@ -111,6 +129,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         titleUnit: titleUnit.trim() || undefined,
         participationForm: participationForm,
         consentAgreed: true,
+        consentCitation: consentCitation,
         consentRecord: isInterviewEligible() ? (consentRecord === 'yes') : null,
         consentCamera: cameraConsentOverride || consentCamera,
         createdAt: new Date().toLocaleString('vi-VN'),
@@ -150,6 +169,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   useEffect(() => {
     let active = true;
     const fetchCode = async () => {
+      if (!selectedGroup) {
+        if (active) setParticipantCode('');
+        return;
+      }
       const code = await BrandSurveyService.getNextParticipantCode(selectedGroup);
       if (active) {
         setParticipantCode(code);
@@ -253,11 +276,17 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   const handleWelcomeNext = () => {
     setValidationError(null);
     setStep('info');
+    scrollToTop();
   };
 
   const handleInfoNext = () => {
     setValidationError(null);
+    if (!selectedGroup) {
+      setValidationError(lang === 'vi' ? 'Vui lòng chọn nhóm tham gia phù hợp trước khi tiếp tục.' : 'Please select a suitable participation group before continuing.');
+      return;
+    }
     setStep('consent');
+    scrollToTop();
   };
 
   const handleConsentNext = () => {
@@ -267,10 +296,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     }
     setValidationError(null);
 
-    // Dynamic routing based on participation choice
     if (isLikertEligible()) {
       setStep('common-likert');
       setCommonIndex(0);
+      scrollToTop();
       setTimeout(() => {
         saveProgressIncrementally(likertAnswers, interviewAnswers, true);
       }, 50);
@@ -278,6 +307,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       setShowCameraPopup(true);
     } else {
       setStep('review');
+      scrollToTop();
       setTimeout(() => {
         saveProgressIncrementally(likertAnswers, interviewAnswers, true);
       }, 50);
@@ -286,11 +316,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
   const handleCommonNext = () => {
     setValidationError(null);
+    const q = COMMON_LIKERT_QUESTIONS[commonIndex];
+    const ans = likertAnswers[q.id];
+    if (q.required && (ans === undefined || ans === null)) {
+      setValidationError(lang === 'vi' ? 'Vui lòng chọn một mức độ đánh giá trước khi tiếp tục.' : 'Please select a rating level before continuing.');
+      return;
+    }
     if (commonIndex < COMMON_LIKERT_QUESTIONS.length - 1) {
       setCommonIndex(commonIndex + 1);
+      scrollToTop();
     } else {
       setStep('group-likert');
       setGroupIndex(0);
+      scrollToTop();
     }
     saveProgressIncrementally();
   };
@@ -299,8 +337,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     setValidationError(null);
     if (commonIndex > 0) {
       setCommonIndex(commonIndex - 1);
+      scrollToTop();
     } else {
       setStep('consent');
+      scrollToTop();
     }
     saveProgressIncrementally();
   };
@@ -310,24 +350,26 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     const q = questions[groupIndex];
     const ans = likertAnswers[q.id];
 
+    if (q.required && q.type === 'likert' && (ans === undefined || ans === null)) {
+      setValidationError(lang === 'vi' ? 'Vui lòng chọn một mức độ đánh giá trước khi tiếp tục.' : 'Please select a rating level before continuing.');
+      return;
+    }
+
     if (ans !== undefined) {
       if (q.type === 'checkbox') {
         const selectedList = (ans as string[]) || [];
         const hasOther = selectedList.includes('Khác');
         
-        // Check min selection count (bypass if user select custom opinion)
         if (q.minSelect && selectedList.length < q.minSelect && !hasOther && selectedList.length > 0) {
           setValidationError(lang === 'vi' ? `Vui lòng chọn tối thiểu ${q.minSelect} phương án để tiếp tục.` : `Please select at least ${q.minSelect} options.`);
           return;
         }
         
-        // Check max selection count
         if (q.maxSelect && selectedList.length > q.maxSelect) {
           setValidationError(lang === 'vi' ? `Vui lòng chỉ chọn tối đa ${q.maxSelect} phương án.` : `Please select at most ${q.maxSelect} options.`);
           return;
         }
 
-        // Check if "Khác" checkbox is selected and make sure the text input is filled
         if (selectedList.includes('Khác')) {
           const otherText = ((likertAnswers[q.id + '_other'] as string) || '').trim();
           if (!otherText) {
@@ -336,17 +378,24 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
           }
         }
       }
+    } else if (q.type === 'checkbox') {
+      if (q.required) {
+        setValidationError(lang === 'vi' ? `Vui lòng chọn ít nhất ${q.minSelect || 1} phương án để tiếp tục.` : `Please select at least ${q.minSelect || 1} option(s).`);
+        return;
+      }
     }
 
     setValidationError(null);
     if (groupIndex < questions.length - 1) {
       setGroupIndex(groupIndex + 1);
+      scrollToTop();
       saveProgressIncrementally();
     } else {
       if (isInterviewEligible()) {
         setShowCameraPopup(true);
       } else {
         setStep('review');
+        scrollToTop();
         saveProgressIncrementally();
       }
     }
@@ -356,9 +405,11 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     setValidationError(null);
     if (groupIndex > 0) {
       setGroupIndex(groupIndex - 1);
+      scrollToTop();
     } else {
       setStep('common-likert');
       setCommonIndex(COMMON_LIKERT_QUESTIONS.length - 1);
+      scrollToTop();
     }
     saveProgressIncrementally();
   };
@@ -368,8 +419,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     setValidationError(null);
     if (interviewIndex < questions.length - 1) {
       setInterviewIndex(interviewIndex + 1);
+      scrollToTop();
     } else {
       setStep('review');
+      scrollToTop();
     }
     saveProgressIncrementally();
   };
@@ -378,13 +431,16 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     setValidationError(null);
     if (interviewIndex > 0) {
       setInterviewIndex(interviewIndex - 1);
+      scrollToTop();
     } else {
       if (isLikertEligible()) {
         const questions = GROUP_LIKERT_QUESTIONS[selectedGroup] || [];
         setStep('group-likert');
         setGroupIndex(questions.length - 1);
+        scrollToTop();
       } else {
         setStep('consent');
+        scrollToTop();
       }
     }
     saveProgressIncrementally();
@@ -396,12 +452,15 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       const questions = INTERVIEW_QUESTIONS[selectedGroup] || [];
       setStep('interview');
       setInterviewIndex(questions.length - 1);
+      scrollToTop();
     } else if (isLikertEligible()) {
       const questions = GROUP_LIKERT_QUESTIONS[selectedGroup] || [];
       setStep('group-likert');
       setGroupIndex(questions.length - 1);
+      scrollToTop();
     } else {
       setStep('consent');
+      scrollToTop();
     }
     saveProgressIncrementally();
   };
@@ -462,7 +521,9 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         titleUnit: titleUnit.trim() || undefined,
         participationForm: participationForm,
         consentAgreed: true,
+        consentCitation: consentCitation,
         consentRecord: isInterviewEligible() ? (consentRecord === 'yes') : null,
+        consentCamera: consentCamera,
         createdAt: new Date().toLocaleString('vi-VN'),
       };
 
@@ -722,11 +783,18 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 </h3>
               </div>
 
+              {validationError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 p-3 rounded-xl text-xs font-semibold animate-shake">
+                  <AlertCircle className="h-4.5 w-4.5 text-red-655 shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
+
               <div className="space-y-4 text-sm font-semibold">
                 
                 {/* 5 Participant Groups Radio layout */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('participantGroup')}</label>
+                  <label className="block text-xs font-black text-slate-900 tracking-tight text-center">{renderTextWithRedAsterisks(t('participantGroup'))}</label>
                   <div className="flex flex-col gap-2">
                     {SURVEY_GROUPS.map((gp) => (
                       <label
@@ -789,7 +857,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
                 {/* Participation form selection */}
                 <div className="space-y-2 pt-1.5">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('participationForm')}</label>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{renderTextWithRedAsterisks(t('participationForm'))}</label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {[
                       { value: 'Bảng hỏi khảo sát', label: lang === 'vi' ? 'Bảng hỏi khảo sát' : 'Survey Questionnaire' },
@@ -821,7 +889,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   </div>
                   {selectedGroup === 'KG-ĐT' && (
                     <p className="text-xs text-amber-600 font-bold">
-                      {t('publicWarning')}
+                      {renderTextWithRedAsterisks(t('publicWarning'))}
                     </p>
                   )}
                 </div>
@@ -877,7 +945,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     onChange={(e) => setConsentInfo(e.target.checked)}
                     className="h-4.5 w-4.5 shrink-0 mt-0.5"
                   />
-                  <span>{t('consentInfo')}</span>
+                  <span>{renderTextWithRedAsterisks(t('consentInfo'))}</span>
                 </label>
 
                 {/* 2. Data consent check */}
@@ -888,7 +956,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     onChange={(e) => setConsentData(e.target.checked)}
                     className="h-4.5 w-4.5 shrink-0 mt-0.5"
                   />
-                  <span>{t('consentData')}</span>
+                  <span>{renderTextWithRedAsterisks(t('consentData'))}</span>
                 </label>
 
                 {/* 3. Citation method check (New requirement) */}
@@ -899,7 +967,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     onChange={(e) => setConsentCitation(e.target.checked)}
                     className="h-4.5 w-4.5 shrink-0 mt-0.5"
                   />
-                  <span>{t('consentCitation')}</span>
+                  <span>{renderTextWithRedAsterisks(t('consentCitation'))}</span>
                 </label>
 
                 {/* 4. Microphone Recording Consent */}
@@ -1234,10 +1302,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   {/* Min / Max indicator labels */}
                   <div className="text-xs text-slate-450 font-bold">
                     {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].minSelect && (
-                      <span className="block text-amber-700">{t('minSelect').replace('{count}', String(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].minSelect))}</span>
+                      <span className="block text-amber-700">{renderTextWithRedAsterisks(t('minSelect').replace('{count}', String(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].minSelect)))}</span>
                     )}
                     {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].maxSelect && (
-                      <span className="block text-blue-700">{t('maxSelect').replace('{count}', String(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].maxSelect))}</span>
+                      <span className="block text-blue-700">{renderTextWithRedAsterisks(t('maxSelect').replace('{count}', String(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].maxSelect)))}</span>
                     )}
                   </div>
                 </div>
@@ -1674,9 +1742,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       {/* 4. ALWAYS RENDERED PRIVACY STATEMENT FOOTER (OUTSIDE CARD CONTAINER) */}
       <footer className="text-center pt-5 shrink-0 border-t border-slate-200/50 mt-5">
         <p className="text-xs text-slate-455 font-black italic max-w-md mx-auto leading-relaxed">
-          {lang === 'vi' 
-            ? '*Ghi chú: Người tham gia có quyền dừng tham gia hoặc yêu cầu không sử dụng thông tin nhận diện cá nhân trong luận văn.' 
-            : '*Note: Participants have the right to withdraw or request that their personal identity not be used in the thesis.'}
+          {renderTextWithRedAsterisks(t('footerNote'))}
         </p>
       </footer>
 

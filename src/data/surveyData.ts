@@ -39,12 +39,12 @@ export const THESIS_METADATA = {
   instructions: [
     "Kính mời Ông/Bà tham gia khảo sát/ phỏng vấn phục vụ luận văn cao học về thiết kế bộ nhận diện thương hiệu cho Liên đoàn Lân Sư Rồng Việt Nam. Nghiên cứu tìm hiểu nhu cầu và yêu cầu thực tế đối với bộ nhận diện của Liên đoàn; đồng thời xem xét việc lấy cảm hứng từ hình tượng lân trong mỹ thuật thời Nguyễn để phát triển giải pháp thiết kế phù hợp.",
     "Ý kiến của Ông/Bà sẽ góp phần xác định tiêu chí thiết kế và đánh giá khả năng ứng dụng thực tế của giải pháp đề xuất. Bảng hỏi cần khoảng 5-7 phút. Phỏng vấn, nếu có, kéo dài khoảng 15-20 phút.",
-    "Việc tham gia hoàn toàn tự nguyện. Ông/Bà có thể bỏ qua bất kỳ câu hỏi nào hoặc dừng tham gia bất cứ lúc nào. Thông tin chỉ được sử dụng cho mục đích học thuật, được bảo mật và chỉ nêu danh tính khi có sự đồng ý của Ông/Bà. Bản ghi âm/ ghi hình, nếu có, chỉ dùng để tổng hợp nội dung phỏng vấn."
+    "Việc tham gia hoàn toàn tự nguyện. Thông tin chỉ được sử dụng cho mục đích học thuật, được bảo mật và chỉ nêu danh tính khi có sự đồng ý của Ông/Bà. Bản ghi âm/ ghi hình, nếu có, chỉ dùng để tổng hợp nội dung phỏng vấn."
   ],
   instructionsEn: [
     "We cordially invite you to participate in a survey/interview for a master's thesis on designing the brand identity for the Vietnam Lion and Dragon Dance Federation. The research aims to explore the Federation's practical needs and requirements for its brand identity, while considering inspiration from the Nguyen Dynasty Lion (Lan) image to develop a suitable design solution.",
     "Your opinions will contribute to defining the design criteria and evaluating the practical applicability of the proposed solution. The questionnaire takes about 5-7 minutes. The interview, if any, lasts about 15-20 minutes.",
-    "Participation is entirely voluntary. You may skip any question or withdraw at any time. The collected information will be used solely for academic purposes, kept strictly confidential, and your identity will only be disclosed with your consent. Audio/video recordings, if any, will only be used to summarize the interview content."
+    "Participation is entirely voluntary. The collected information will be used solely for academic purposes, kept strictly confidential, and your identity will only be disclosed with your consent. Audio/video recordings, if any, will only be used to summarize the interview content."
   ]
 };
 
@@ -291,7 +291,7 @@ export const GROUP_LIKERT_QUESTIONS: Record<string, SurveyQuestionConfig[]> = {
         "Giản lược phù hợp với môi trường đương đại",
         "Tránh nhầm lẫn Lân với Nghê, Long Mã hoặc sư tử trang trí",
         "Chuyển hóa thận trọng các giá trị biểu tượng",
-        "Bảo đảm khả năng ứng dụng đa nền tảng"
+        "Bảo đảm khả năng vận hành trên các nhóm ứng dụng"
       ],
       optionsEn: [
         "Identify the correct source image",
@@ -302,7 +302,7 @@ export const GROUP_LIKERT_QUESTIONS: Record<string, SurveyQuestionConfig[]> = {
         "Simplify appropriately for contemporary environments",
         "Avoid confusing the Lion with Nghê, Long Ma, or decorative lions",
         "Cautiously transform symbolic values",
-        "Ensure cross-platform applicability"
+        "Ensure effective operation on application groups"
       ],
       minSelect: 1,
       maxSelect: 4,
@@ -362,7 +362,7 @@ export const GROUP_LIKERT_QUESTIONS: Record<string, SurveyQuestionConfig[]> = {
         "Khả năng sử dụng ở dạng đơn sắc",
         "Tính nhất quán giữa biểu trưng, màu, chữ và họa tiết",
         "Khả năng ứng dụng trên trang phục, cờ và không gian giải đấu",
-        "Khả năng vận hành trên nền tảng số"
+        "Khả năng vận hành trên nhóm ứng dụng số"
       ],
       optionsEn: [
         "Simplicity and memorability",
@@ -373,7 +373,7 @@ export const GROUP_LIKERT_QUESTIONS: Record<string, SurveyQuestionConfig[]> = {
         "Ability to be used in monochrome",
         "Consistency between logo, colors, typography, and patterns",
         "Applicability on uniforms, flags, and tournament spaces",
-        "Operation on digital platforms"
+        "Operation on digital application groups"
       ],
       minSelect: 4,
       allowOther: true,
@@ -525,13 +525,13 @@ export const INTERVIEW_QUESTIONS: Record<string, SurveyQuestionConfig[]> = {
     { id: "DS-I09", text: "Câu 9. Từ các nội dung vừa trao đổi, Thầy/Cô có khuyến nghị nào khác về hệ mẫu hiện vật, cách phân tích hoặc hướng chuyển hóa hình tượng Lân thời Nguyễn trong đề tài này không?", textEn: "Question 9. Do you have any other recommendations regarding the artifact system, analysis methods, or the direction of transforming the Nguyen Dynasty Lion image in this thesis?", type: 'textarea', required: false }
   ],
   "CG-TK": [
-    { id: "TK-I01", text: "Câu 1. Theo Anh/Chị, một bộ nhận diện thương hiệu cho Liên đoàn Lân Sư Rồng Việt Nam cần giải quyết những bài toán chiến lược nào trước khi bắt đầu phát triển biểu trưng và hệ đồ họa?\n(VD: Vị thế tổ chức ở phạm vi quốc gia; Mối quan hệ giữa văn hóa, cộng đồng, thể thao và truyền thông; Khác biệt với đoàn biểu diễn, câu lạc bộ hoặc tổ chức Lân Sư Rồng khác; Tính chính thống, chuyên nghiệp và khả năng hội nhập; Nhóm công chúng và điểm tiếp xúc ưu tiên).", textEn: "Question 1. What strategic problems do you think a brand identity for the Federation must solve before developing the logo and graphic system?\n(e.g., National status; Relationship between culture, community, sports, and media; Distinction from other performance teams or clubs; Official status, professionalism, and integration capacity; Priority audience and touchpoints).", type: 'textarea', required: false },
-    { id: "TK-I02", text: "Câu 2. Theo Anh/Chị, trong một dự án nhận diện cho tổ chức hoạt động đa nền tảng như Liên đoàn, các thành tố nào cần được xác lập trước và theo trình tự nào?\n(VD: Định hướng bản sắc; Biểu trưng; Hệ màu; Kiểu chữ; Họa tiết hoặc đồ họa hỗ trợ; Hệ thống bố cục; Quy chuẩn sử dụng; Ứng dụng tiêu biểu; Sổ tay nhận diện).", textEn: "Question 2. In an identity project for a multi-platform organization like the Federation, which components should be established first and in what order?\n(e.g., Identity direction; Logo; Color system; Typography; Patterns or supporting graphics; Layout system; Usage standards; Typical applications; Identity manual).", type: 'textarea', required: false },
+    { id: "TK-I01", text: "Câu 1. Theo Anh/Chị, một bộ nhận diện thương hiệu cho Liên đoàn Lân Sư Rồng Việt Nam cần giải quyết những bài toán chiến lược nào trước khi bắt đầu phát triển biểu trưng và hệ đồ họa?\n(VD: Vị thế tổ chức ở quy mô quốc gia; Mối quan hệ giữa văn hóa, cộng đồng, thể thao và truyền thông; Khác biệt với đoàn biểu diễn, câu lạc bộ hoặc tổ chức Lân Sư Rồng khác; Tính chính thống, chuyên nghiệp và khả năng hội nhập; Nhóm công chúng và điểm tiếp xúc ưu tiên).", textEn: "Question 1. What strategic problems do you think a brand identity for the Federation must solve before developing the logo and graphic system?\n(e.g., National organizational scale; Relationship between culture, community, sports, and media; Distinction from other performance teams or clubs; Official status, professionalism, and integration capacity; Priority audience and touchpoints).", type: 'textarea', required: false },
+    { id: "TK-I02", text: "Câu 2. Theo Anh/Chị, trong một dự án nhận diện cho tổ chức hoạt động trên các nhóm ứng dụng như Liên đoàn, các thành tố nào cần được xác lập trước và theo trình tự nào?\n(VD: Định hướng bản sắc; Biểu trưng; Hệ màu; Kiểu chữ; Họa tiết hoặc đồ họa hỗ trợ; Hệ thống bố cục; Quy chuẩn sử dụng; Ứng dụng tiêu biểu; Sổ tay nhận diện).", textEn: "Question 2. In an identity project for an organization operating across application groups like the Federation, which components should be established first and in what order?\n(e.g., Identity direction; Logo; Color system; Typography; Patterns or supporting graphics; Layout system; Usage standards; Typical applications; Identity manual).", type: 'textarea', required: false },
     { id: "TK-I03", text: "Câu 3. Đề tài dự kiến trích xuất đặc trưng từ hình tượng Lân trong mỹ thuật thời Nguyễn để phát triển biểu trưng và hệ đồ họa. Theo Anh/Chị, quá trình này cần thực hiện theo nguyên tắc nào để vừa duy trì mối liên hệ với nguồn di sản, vừa bảo đảm tính đương đại?\n(VD: Chọn cấu trúc nhận biết thay vì sao chép hình ảnh; Phân rã đầu, sừng, bờm, thân, đuôi và nhịp đường nét; Xác định đặc trưng cốt lõi và đặc trưng phụ trợ; Giản lược tỷ lệ, mảng và chi tiết; Kiểm tra khả năng nhận biết ở kích thước nhỏ; Tránh mô phỏng hoa văn cổ như yếu tố trang trí bề mặt).", textEn: "Question 3. The project plans to extract features from the Nguyen Dynasty Lion to develop the logo and graphic system. By what principles should this be done to maintain a connection with heritage while ensuring modernity?\n(e.g., Choose recognizable structures instead of copying images; Deconstruct head, horns, mane, body, tail, and line rhythms; Identify core and auxiliary features; Simplify proportions, shapes, and details; Check recognizability at small sizes; Avoid simulating ancient patterns as surface decorations).", type: 'textarea', required: false },
     { id: "TK-I04", text: "Câu 4. Theo Anh/Chị, những loại dữ liệu nào nên được ưu tiên cho biểu trưng chính, và những loại dữ liệu nào phù hợp hơn để phát triển pattern, màu sắc, bố cục hoặc hệ đồ họa hỗ trợ?\n(VD: Cấu trúc đầu, sừng, bờm; Đường cong thân, đuôi và nhịp vận động; Mây, lửa, hoa lá và mô-típ phụ trợ; Chất liệu khảm sành sứ, pháp lam hoặc đồng; Bố cục chầu, đối xứng hoặc liên hoàn; Giá trị biểu tượng và thông điệp).", textEn: "Question 4. What types of data should be prioritized for the primary logo, and which are more suitable for developing patterns, colors, layouts, or supporting graphics?\n(e.g., Head, horns, mane structure; Body, tail curves and movement rhythm; Clouds, fire, foliage, and auxiliary motifs; Porcelain inlay, enamel, or bronze materials; Adoration, symmetrical, or continuous layouts; Symbolic values and messages).", type: 'textarea', required: false },
     { id: "TK-I05", text: "Câu 5. Theo Anh/Chị, nguyên tắc lấy Lân thời Nguyễn làm chủ đạo, Rồng đại diện cho Liên đoàn, và Sư qua tên gọi/ứng dụng có phù hợp không? Nên tích hợp Rồng thế nào để tránh biến biểu trưng thành bộ minh họa nhiều linh vật?\n(VD: Đường uốn, hướng chuyển động, thế bao hoặc khoảng âm; Họa tiết hoặc dấu hiệu phụ; Dấu hiệu dùng trong hệ ứng dụng thay vì biểu trưng chính; Mức độ nhận biết cần thiết của Rồng; Tránh ghép ba đầu linh vật ngang hàng; Tránh sao chép đầu Rồng biểu diễn).", textEn: "Question 5. Is the principle of using Nguyen Dynasty Lion as primary, Dragon representing the Federation, and Sư via name/application appropriate? How should the Dragon be integrated to avoid making the logo a multi-beast illustration?\n(e.g., Curved lines, movement direction, enclosing or negative space; Auxiliary patterns or signs; Signs in the application system instead of the main logo; Required recognizability of the Dragon; Avoid merging three heads; Avoid copying performing Dragon heads).", type: 'textarea', required: false },
     { id: "TK-I06", text: "Câu 6. Theo Anh/Chị, những rủi ro tạo hình nào thường xuất hiện khi thiết kế nhận diện từ chất liệu truyền thống và linh vật văn hóa?\n(VD: Quá nhiều chi tiết; Khó nhận biết ở kích thước nhỏ; Lạm dụng mô-típ trang trí; Lẫn lộn giữa linh vật truyền thống và đạo cụ biểu diễn; Pha trộn quá nhiều biểu tượng; Thiếu khác biệt với biểu trưng của các đoàn hoặc giải đấu; Màu sắc và kiểu chữ không thống nhất; Hệ ứng dụng không có khả năng mở rộng).", textEn: "Question 6. What visual risks often appear when designing identities from traditional materials and cultural mythical creatures?\n(e.g., Too many details; Hard to recognize at small sizes; Overuse of decorative motifs; Confusion between traditional creatures and performance props; Mixing too many symbols; Lack of distinction from other teams or tournaments; Inconsistent colors/typography; Inextensible application system).", type: 'textarea', required: false },
-    { id: "TK-I07", text: "Câu 7. Theo Anh/Chị, biểu trưng và bộ nhận diện thương hiệu cần đáp ứng những điều kiện kỹ thuật nào để vận hành ổn định trên trang phục, cờ, huy chương, banner, backdrop, chứng nhận và nền tảng số?\n(VD: Kích thước tối thiểu; Phiên bản ngang, dọc, rút gọn; Phiên bản đơn sắc và âm bản; Tỷ lệ logo - chữ; Tương phản màu; Khả năng in, thêu, cắt decal hoặc gia công; Khả năng hiển thị trên màn hình nhỏ; Hệ lưới và phân cấp thông tin).", textEn: "Question 7. What technical conditions must the logo and brand identity meet to operate stably on uniforms, flags, medals, banners, backdrops, certificates, and digital platforms?\n(e.g., Minimum size; Horizontal, vertical, simplified versions; Monochrome and negative versions; Logo-text ratio; Color contrast; Print, embroidery, decal cut, or manufacturing capability; Display capability on small screens; Grid system and information hierarchy).", type: 'textarea', required: false },
+    { id: "TK-I07", text: "Câu 7. Theo Anh/Chị, biểu trưng và bộ nhận diện thương hiệu cần đáp ứng những điều kiện kỹ thuật nào để vận hành ổn định trên trang phục, cờ, huy chương, banner, backdrop, chứng nhận và nhóm ứng dụng số?\n(VD: Kích thước tối thiểu; Phiên bản ngang, dọc, rút gọn; Phiên bản đơn sắc và âm bản; Tỷ lệ logo - chữ; Tương phản màu; Khả năng in, thêu, cắt decal hoặc gia công; Khả năng hiển thị trên màn hình nhỏ; Hệ lưới và phân cấp thông tin).", textEn: "Question 7. What technical conditions must the logo and brand identity meet to operate stably on uniforms, flags, medals, banners, backdrops, certificates, and digital application groups?\n(e.g., Minimum size; Horizontal, vertical, simplified versions; Monochrome and negative versions; Logo-text ratio; Color contrast; Print, embroidery, decal cut, or manufacturing capability; Display capability on small screens; Grid system and information hierarchy).", type: 'textarea', required: false },
     { id: "TK-I08", text: "Câu 8. Theo Anh/Chị, một giải pháp nhận diện ứng dụng từ di sản cần được đánh giá theo những tiêu chí nào? Những nhóm đối tượng nào cần tham gia kiểm chứng trước khi hoàn thiện?\n(VD: Tính thẩm mỹ; Tính bản sắc; Khả năng nhận biết; Tính đại diện tổ chức ;Khả năng ứng dụng; Tính nhất quán; Khả năng mở rộng; Đại diện Liên đoàn ;Cộng đồng thực hành; Chuyên gia mỹ thuật, di sản; Chuyên gia thiết kế, truyền thông; Công chúng tiếp nhận).", textEn: "Question 8. By what criteria should a heritage-applied identity solution be evaluated? Which target groups should participate in validation before finalization?\n(e.g., Aesthetics; Identity; Recognizability; Representation; Applicability; Consistency; Extensibility; Federation representatives; Practicing community; Fine art and heritage experts; Design and communication experts; Public audience).", type: 'textarea', required: false },
     { id: "TK-I09", text: "Câu 9. Từ các nội dung vừa trao đổi, Anh/Chị có khuyến nghị nào khác về chiến lược, nguyên tắc tạo hình hoặc điều kiện triển khai bộ nhận diện thương hiệu cho Liên đoàn Lân Sư Rồng Việt Nam không?", textEn: "Question 9. Do you have any other recommendations regarding strategy, design principles, or implementation conditions of the brand identity for the Federation?", type: 'textarea', required: false }
   ]
@@ -553,7 +553,7 @@ export const TRANSLATIONS = {
     startSurvey: "Bắt đầu khảo sát →",
     submitSurvey: "Gửi khảo sát",
     submitting: "Đang gửi khảo sát...",
-    participantGroup: "Nhóm đối tượng tham gia *",
+    participantGroup: "VUI LÒNG CHỌN NHÓM THAM GIA PHÙ HỢP *",
     participantCode: "Mã người tham gia (Tự động):",
     fullName: "Họ và tên (Không bắt buộc)",
     titleUnit: "Chức danh / Đơn vị (Không bắt buộc)",
@@ -571,8 +571,8 @@ export const TRANSLATIONS = {
     partA: "Phần A · Khảo sát ý kiến chung",
     partB: "Phần B · Khảo sát theo nhóm",
     partC: "Phần C · Phỏng vấn sâu nhóm",
-    playAudio: "🔊 Nhấn loa để nghe đọc câu hỏi",
-    playAudioOptional: "🔊 Bấm loa để nghe đọc câu hỏi (Không bắt buộc trả lời)",
+    playAudio: "🔊 Nhấn loa để nghe đọc câu hỏi (Bắt buộc trả lời)",
+    playAudioOptional: "🔊 Bấm loa để nghe đọc câu hỏi",
     otherOption: "Ý kiến khác",
     otherPlaceholder: "Nhập nội dung khác của bạn tại đây...",
     minSelect: "* Yêu cầu chọn tối thiểu {count} phương án.",
@@ -593,7 +593,7 @@ export const TRANSLATIONS = {
     successDesc: "Phản hồi khảo sát của bạn đã được lưu giữ thành công để phục vụ công tác nghiên cứu luận văn.",
     yourCode: "Mã người tham gia của bạn:",
     closeTab: "Bạn có thể đóng tab trình duyệt này an toàn.",
-    footerNote: "*Ghi chú: Người tham gia có quyền dừng tham gia hoặc yêu cầu không sử dụng thông tin nhận diện cá nhân trong luận văn.",
+    footerNote: "*Ghi chú: Người tham gia có quyền yêu cầu không sử dụng thông tin nhận diện cá nhân trong luận văn.",
     cameraConsentQuestion: "Bạn có đồng ý bật camera trong quá trình phỏng vấn để hỗ trợ nghiên cứu không?",
     cameraConsentNote: "Không bắt buộc.",
     cameraConsentYes: "Đồng ý bật camera",
@@ -617,7 +617,7 @@ export const TRANSLATIONS = {
     startSurvey: "Start Survey →",
     submitSurvey: "Submit Survey",
     submitting: "Submitting Survey...",
-    participantGroup: "Participant Group *",
+    participantGroup: "PLEASE SELECT A SUITABLE PARTICIPATION GROUP *",
     participantCode: "Participant Code (Auto):",
     fullName: "Full Name (Optional)",
     titleUnit: "Title / Unit (Optional)",
@@ -635,8 +635,8 @@ export const TRANSLATIONS = {
     partA: "Part A · General Survey",
     partB: "Part B · Group-specific Survey",
     partC: "Part C · In-depth Interview for Group",
-    playAudio: "🔊 Press the speaker to listen to the question",
-    playAudioOptional: "🔊 Press the speaker to listen to the question (Optional)",
+    playAudio: "🔊 Press the speaker to listen to the question (Required answer)",
+    playAudioOptional: "🔊 Press the speaker to listen to the question",
     otherOption: "Other opinion",
     otherPlaceholder: "Enter your other opinion here...",
     minSelect: "* Selection of at least {count} options required.",
@@ -657,7 +657,7 @@ export const TRANSLATIONS = {
     successDesc: "Your response has been successfully saved for the thesis research.",
     yourCode: "Your participant code:",
     closeTab: "You can safely close this browser tab.",
-    footerNote: "*Note: Participants have the right to withdraw or request not to use their personal identity details in the thesis.",
+    footerNote: "*Note: Participants have the right to request not to use their personal identity details in the thesis.",
     cameraConsentQuestion: "Do you agree to turn on the camera during the interview to support the research?",
     cameraConsentNote: "Optional.",
     cameraConsentYes: "Agree to turn on camera",
