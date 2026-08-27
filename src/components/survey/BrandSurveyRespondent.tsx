@@ -184,10 +184,14 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     };
   }, [selectedGroup]);
 
-  // Reset participation form if group is KG-ĐT
+  // Sync participationForm and default recording format based on selectedGroup
   useEffect(() => {
     if (selectedGroup === 'KG-ĐT') {
       setParticipationForm('Bảng hỏi khảo sát');
+    } else if (selectedGroup) {
+      setParticipationForm('Cả hai hình thức');
+      setUseCamera(false);
+      setConsentCamera('Người dùng không bật camera');
     }
   }, [selectedGroup]);
 
@@ -304,7 +308,12 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         saveProgressIncrementally(likertAnswers, interviewAnswers, true);
       }, 50);
     } else if (isInterviewEligible()) {
-      setShowCameraPopup(true);
+      setStep('interview');
+      setInterviewIndex(0);
+      scrollToTop();
+      setTimeout(() => {
+        saveProgressIncrementally(likertAnswers, interviewAnswers, true);
+      }, 50);
     } else {
       setStep('review');
       scrollToTop();
@@ -392,7 +401,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
       saveProgressIncrementally();
     } else {
       if (isInterviewEligible()) {
-        setShowCameraPopup(true);
+        setStep('interview');
+        setInterviewIndex(0);
+        scrollToTop();
+        saveProgressIncrementally();
       } else {
         setStep('review');
         scrollToTop();
@@ -855,44 +867,85 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   </div>
                 </div>
 
-                {/* Participation form selection */}
-                <div className="space-y-2 pt-1.5">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{renderTextWithRedAsterisks(t('participationForm'))}</label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {[
-                      { value: 'Bảng hỏi khảo sát', label: lang === 'vi' ? 'Bảng hỏi khảo sát' : 'Survey Questionnaire' },
-                      { value: 'Phỏng vấn', label: lang === 'vi' ? 'Phỏng vấn' : 'In-depth Interview', disabled: selectedGroup === 'KG-ĐT' },
-                      { value: 'Cả hai hình thức', label: lang === 'vi' ? 'Cả hai hình thức' : 'Both formats', disabled: selectedGroup === 'KG-ĐT' }
-                    ].map((item) => (
-                      <label
-                        key={item.value}
-                        className={`flex items-center gap-2 p-3 border-2 rounded-2xl cursor-pointer transition-all ${
-                          item.disabled
-                            ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400'
-                            : participationForm === item.value
-                            ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="participationForm"
-                          value={item.value}
-                          disabled={item.disabled}
-                          checked={participationForm === item.value}
-                          onChange={() => setParticipationForm(item.value as any)}
-                          className="h-4 w-4 accent-amber-500"
-                        />
-                        <span className="text-xs font-extrabold leading-none">{item.label}</span>
-                      </label>
-                    ))}
+                 {/* Participation form / Recording selection */}
+                {selectedGroup !== 'KG-ĐT' ? (
+                  <div className="space-y-2 pt-1.5">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {renderTextWithRedAsterisks(lang === 'vi' ? 'Hình thức ghi nhận phỏng vấn' : 'Interview Recording Format')}
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {[
+                        { value: 'audio', label: lang === 'vi' ? 'Phỏng vấn ghi âm (Chỉ thu âm)' : 'Audio Interview (Voice only)' },
+                        { value: 'video', label: lang === 'vi' ? 'Phỏng vấn ghi hình (Bật camera)' : 'Video Interview (Enable camera)' }
+                      ].map((item) => {
+                        const isSelected = item.value === 'video' ? useCamera : !useCamera;
+                        return (
+                          <label
+                            key={item.value}
+                            className={`flex items-center gap-2 p-3 border-2 rounded-2xl cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="recordingFormat"
+                              value={item.value}
+                              checked={isSelected}
+                              onChange={() => {
+                                if (item.value === 'video') {
+                                  setUseCamera(true);
+                                  setConsentCamera('Đã bật camera');
+                                } else {
+                                  setUseCamera(false);
+                                  setConsentCamera('Người dùng không bật camera');
+                                }
+                                setConsentRecord('yes');
+                              }}
+                              className="h-4.5 w-4.5 accent-amber-500"
+                            />
+                            <span className="text-xs font-extrabold leading-none">{item.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                  {selectedGroup === 'KG-ĐT' && (
+                ) : (
+                  <div className="space-y-2 pt-1.5">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{renderTextWithRedAsterisks(t('participationForm'))}</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {[
+                        { value: 'Bảng hỏi khảo sát', label: lang === 'vi' ? 'Bảng hỏi khảo sát' : 'Survey Questionnaire' },
+                        { value: 'Phỏng vấn', label: lang === 'vi' ? 'Phỏng vấn' : 'In-depth Interview', disabled: true },
+                        { value: 'Cả hai hình thức', label: lang === 'vi' ? 'Cả hai hình thức' : 'Both formats', disabled: true }
+                      ].map((item) => (
+                        <label
+                          key={item.value}
+                          className={`flex items-center gap-2 p-3 border-2 rounded-2xl cursor-pointer transition-all ${
+                            item.disabled
+                              ? 'opacity-40 bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400'
+                              : 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="participationForm"
+                            value={item.value}
+                            disabled={item.disabled}
+                            checked={participationForm === item.value}
+                            readOnly
+                            className="h-4.5 w-4.5 accent-amber-500"
+                          />
+                          <span className="text-xs font-extrabold leading-none">{item.label}</span>
+                        </label>
+                      ))}
+                    </div>
                     <p className="text-xs text-amber-600 font-bold">
                       {renderTextWithRedAsterisks(t('publicWarning'))}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
 
               </div>
             </div>
@@ -970,31 +1023,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                   <span>{renderTextWithRedAsterisks(t('consentCitation'))}</span>
                 </label>
 
-                {/* 4. Microphone Recording Consent */}
+                 {/* 4. Microphone/Video Recording Consent */}
                 {participationForm !== 'Bảng hỏi khảo sát' && selectedGroup !== 'KG-ĐT' ? (
                   <div className="bg-slate-50 border border-slate-150 p-3.5 rounded-2xl space-y-2 mt-1">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-450">{t('recordOption')}</span>
-                    <div className="flex flex-col gap-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="consentRecord"
-                          checked={consentRecord === 'yes'}
-                          onChange={() => setConsentRecord('yes')}
-                          className="h-4.5 w-4.5"
-                        />
-                        <span className="text-slate-800 font-bold">{t('recordYes')}</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="consentRecord"
-                          checked={consentRecord === 'no'}
-                          onChange={() => setConsentRecord('no')}
-                          className="h-4.5 w-4.5"
-                        />
-                        <span className="text-slate-800 font-bold">{t('recordNo')}</span>
-                      </label>
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-450">
+                      {lang === 'vi' ? 'Đồng thuận ghi âm / ghi hình phỏng vấn:' : 'Interview Recording/Video Consent:'}
+                    </span>
+                    <div className="text-slate-800 font-bold text-xs flex items-center gap-2">
+                      <span className="text-emerald-600 text-sm font-black">✓</span>
+                      <span>
+                        {useCamera
+                          ? (lang === 'vi' ? 'Đã đồng ý ghi hình phỏng vấn (Bật camera)' : 'Agreed to video interview (Enable camera)')
+                          : (lang === 'vi' ? 'Đã đồng ý ghi âm phỏng vấn' : 'Agreed to audio interview')}
+                      </span>
                     </div>
                   </div>
                 ) : (
