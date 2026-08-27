@@ -77,7 +77,7 @@ export const LIKERT_SCALE_OPTIONS: LikertScaleOption[] = [
 export const COMMON_LIKERT_QUESTIONS: SurveyQuestionConfig[] = [
   {
     id: "C1",
-    text: "C1. Liên đoàn Lân Sư Rồng Việt Nam cần một bộ nhận diện thương hiệu để thể hiện rõ vai trò của tổ chức ở phạm vi quốc gia.",
+    text: "C1. Liên đoàn Lân Sư Rồng Việt Nam cần một bộ nhận diện thương hiệu để thể hiện rõ vai trò của tổ chức ở quy mô quốc gia.",
     textEn: "C1. The Vietnam Lion and Dragon Dance Federation needs a brand identity to clearly demonstrate the role of the organization at the national level.",
     type: 'likert',
     required: true
