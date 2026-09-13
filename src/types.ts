@@ -87,6 +87,7 @@ export interface BrandSurveySubmission {
   id: string;
   participant: Participant;
   likertAnswers: Record<string, any>; // maps questionId to score (1-5), checkboxes (string[]), or open texts
+  yesNoAnswers?: Record<string, 'yes' | 'no' | string | null>; // maps questionId to 'yes' | 'no'
   interviewAnswers: Record<string, { text: string; audioUrl: string | null }>; // maps questionId to text & audio
   submittedAt: string;
 }

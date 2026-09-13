@@ -57,21 +57,31 @@ export const SURVEY_GROUPS: SurveyGroup[] = [
   { code: 'KG-ĐT', name: 'Công chúng, khán giả, đối tác hoặc truyền thông', nameEn: 'Public, Audience, Partners or Media', codePrefix: 'KG-ĐT' },
 ];
 
-// LIKERT OPTIONS DEFINITION (😞 😐 🙂 😊 🤩 Scale)
 export interface LikertScaleOption {
   value: number;
+  code: 'yes' | 'no';
   emoji: string;
   label: string;
   labelEn: string;
+  yesNo: string;
+  yesNoEn: string;
 }
 
 export const LIKERT_SCALE_OPTIONS: LikertScaleOption[] = [
-  { value: 1, emoji: '😞', label: 'Hoàn toàn không đồng ý', labelEn: 'Strongly disagree' },
-  { value: 2, emoji: '😐', label: 'Không đồng ý', labelEn: 'Disagree' },
-  { value: 3, emoji: '🙂', label: 'Trung lập', labelEn: 'Neutral' },
-  { value: 4, emoji: '😊', label: 'Đồng ý', labelEn: 'Agree' },
-  { value: 5, emoji: '🤩', label: 'Hoàn toàn đồng ý', labelEn: 'Strongly agree' },
+  { value: 5, code: 'yes', emoji: '😊', label: 'Đồng ý', labelEn: 'Yes', yesNo: 'Đồng ý', yesNoEn: 'Yes' },
+  { value: 1, code: 'no', emoji: '😞', label: 'Không đồng ý', labelEn: 'No', yesNo: 'Không đồng ý', yesNoEn: 'No' },
 ];
+
+export const getYesNoAnswer = (val: any, lang: 'vi' | 'en' = 'vi'): { text: string; code: 'yes' | 'no' | 'na' } => {
+  if (val === null || val === undefined) return { text: lang === 'vi' ? 'Chưa trả lời' : 'N/A', code: 'na' };
+  if (val === 'yes' || val === 5 || val === 4 || val === 'Đồng ý' || val === 'Yes') {
+    return { text: lang === 'vi' ? 'Đồng ý (Yes)' : 'Yes', code: 'yes' };
+  }
+  if (val === 'no' || val === 1 || val === 2 || val === 'Không đồng ý' || val === 'No') {
+    return { text: lang === 'vi' ? 'Không đồng ý (No)' : 'No', code: 'no' };
+  }
+  return { text: lang === 'vi' ? 'Chưa trả lời' : 'N/A', code: 'na' };
+};
 
 // 3. COMMON QUESTIONS (PART A) - Likert Questions C1 to C7
 export const COMMON_LIKERT_QUESTIONS: SurveyQuestionConfig[] = [

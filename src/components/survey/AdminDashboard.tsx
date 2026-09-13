@@ -9,6 +9,7 @@ import {
   COMMON_LIKERT_QUESTIONS,
   GROUP_LIKERT_QUESTIONS,
   INTERVIEW_QUESTIONS,
+  getYesNoAnswer,
 } from '../../data/surveyData';
 import { BarChart3, Users, FolderOpen, Headphones, X, RotateCcw, Play, CheckCircle2, ChevronRight, User, MessageSquare, Loader2, Download } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export const AdminDashboard: React.FC = () => {
   const [submissions, setSubmissions] = useState<BrandSurveySubmission[]>([]);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('All');
   const [selectedSubmission, setSelectedSubmission] = useState<BrandSurveySubmission | null>(null);
+  const [reportTabMode, setReportTabMode] = useState<'all' | 'likert' | 'yesno'>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   // Load submissions asynchronously
@@ -98,7 +100,16 @@ export const AdminDashboard: React.FC = () => {
       };
     });
 
-    return { totalCount, percentages };
+    const yesCount = counts['4'] + counts['5'];
+    const noCount = counts['1'] + counts['2'];
+    const neutralCount = counts['3'];
+    const yesNoStats = {
+      yes: { count: yesCount, percent: totalCount > 0 ? Math.round((yesCount / totalCount) * 100) : 0 },
+      no: { count: noCount, percent: totalCount > 0 ? Math.round((noCount / totalCount) * 100) : 0 },
+      neutral: { count: neutralCount, percent: totalCount > 0 ? Math.round((neutralCount / totalCount) * 100) : 0 },
+    };
+
+    return { totalCount, percentages, yesNoStats };
   };
 
   if (isLoading) {
@@ -145,6 +156,25 @@ export const AdminDashboard: React.FC = () => {
         </button>
       </div>
 
+      {/* Supabase SQL Migration Notice */}
+      <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 text-emerald-950 text-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 font-extrabold text-emerald-900">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+            Hướng dẫn xem cột Database `yes_no_answers` trên Supabase:
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+            SQL Migration
+          </span>
+        </div>
+        <p className="text-[11px] text-emerald-800 leading-relaxed">
+          Nếu trong <strong>Supabase Table Editor</strong> bạn chưa thấy cột <code className="bg-emerald-100 px-1 py-0.5 rounded font-mono text-emerald-950">yes_no_answers</code>, hãy vào menu <strong>SQL Editor</strong> trên Supabase và dán lệnh sau để thêm cột vào bảng:
+        </p>
+        <div className="bg-slate-900 text-slate-100 p-3 rounded-xl font-mono text-[11px] overflow-x-auto select-all flex items-center justify-between">
+          <code>ALTER TABLE lan_su_rong_submissions ADD COLUMN IF NOT EXISTS yes_no_answers JSONB DEFAULT '&#123;&#125;'::jsonb;</code>
+        </div>
+      </div>
+
       {/* KPI Stats widgets grid */}
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
         {/* Total stats */}
@@ -170,58 +200,201 @@ export const AdminDashboard: React.FC = () => {
         })}
       </div>
 
-      {/* CHART SECTION: COMMON LIKERT CHART + 5 GROUP LIKERT CHARTS */}
+      {/* UNIFIED DASHBOARD REPORT SECTION */}
       <div className="space-y-6">
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Biểu đồ phân phối ý kiến Likert</h2>
         
-        {/* 1. Common Likert charts block (1 Common Likert Chart) */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-xs space-y-6">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <span className="inline-flex h-3 w-3 rounded-full bg-indigo-600"></span>
-            <h3 className="font-extrabold text-sm text-slate-950 uppercase tracking-wide">
-              I. Báo cáo khảo sát chung (Mẫu chung cho 5 nhóm)
-            </h3>
+        {/* Title Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <BarChart3 className="w-5.5 h-5.5 text-indigo-600 shrink-0" />
+            <div>
+              <h2 className="text-sm font-black text-slate-950 uppercase tracking-wide">
+                Dashboard Thống Kê Gộp 2 Cột Database (Yes/No & Likert 1-5)
+              </h2>
+              <p className="text-[10.5px] text-slate-500 font-bold">
+                Tất cả câu hỏi khảo sát dùng 2 tùy chọn Yes/No · Tự động đồng bộ và gộp kết quả 2 cột vào cùng 1 khung Dashboard
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-full shrink-0">
+            ✅ Đồng bộ 2 Cột DB
+          </span>
+        </div>
+
+        {/* 1. MASTER UNIFIED SUMMARY TABLE (GỘP CẢ 2 CỘT DATABASE SIDE-BY-SIDE) */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+              <h3 className="font-extrabold text-xs text-slate-950 uppercase tracking-wide">
+                Bảng Thống Kê Tổng Hợp Gộp 2 Cột Database (`yes_no_answers` & `likert_answers`)
+              </h3>
+            </div>
+            <span className="text-[9px] font-mono font-extrabold text-slate-400 uppercase">
+              Tất cả câu hỏi khảo sát
+            </span>
           </div>
 
-          <div className="space-y-5">
-            {COMMON_LIKERT_QUESTIONS.map((q) => {
-              const { totalCount, percentages } = getLikertPercentages(q.id);
-              return (
-                <div key={q.id} className="space-y-2 border-b border-slate-100/70 pb-5 last:border-0 last:pb-0">
-                  <p className="text-xs font-extrabold text-slate-800 leading-relaxed">
-                    {q.text.toUpperCase().startsWith(q.id.toUpperCase() + '.') ? q.text : `${q.id.toUpperCase()}: ${q.text}`}
-                  </p>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase font-mono">
-                    (Số mẫu đã đánh giá: {totalCount})
-                  </span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-wider">
+                  <th className="p-3 w-16">Mã CH</th>
+                  <th className="p-3">Nội dung câu hỏi</th>
+                  <th className="p-3 text-center w-20">Tổng mẫu</th>
+                  <th className="p-3 text-center w-40 text-emerald-900 bg-emerald-50/80 border-l border-r border-emerald-200/60">
+                    🟢 Cột DB `yes_no_answers`
+                  </th>
+                  <th className="p-3 text-center w-40 text-indigo-900 bg-indigo-50/80 border-r border-indigo-200/60">
+                    5️⃣ Cột DB `likert_answers`
+                  </th>
+                  <th className="p-3 text-center w-28">Đồng thuận</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-semibold">
+                {COMMON_LIKERT_QUESTIONS.map((q) => {
+                  const { totalCount, percentages, yesNoStats } = getLikertPercentages(q.id);
+                  const score5 = percentages['5'] || { count: 0, percent: 0 };
+                  const score1 = percentages['1'] || { count: 0, percent: 0 };
 
-                  {/* Horizontal HTML Bar chart stack */}
-                  <div className="space-y-1.5 pt-2">
-                    {[1, 2, 3, 4, 5].map((val) => {
-                      const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === val)!;
-                      const stats = percentages[String(val)] || { count: 0, percent: 0 };
-                      return (
-                        <div key={val} className="flex items-center gap-2 text-xs">
-                          <span className="w-14 text-[10px] text-slate-500 font-bold shrink-0 text-right leading-none">
-                            {opt.emoji} {opt.label}
-                          </span>
-                          <div className="flex-1 bg-slate-100 h-6 rounded-md overflow-hidden relative">
-                            <div
-                              className="bg-indigo-600/90 h-full transition-all duration-300"
-                              style={{ width: `${stats.percent}%` }}
-                            />
-                            <span className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[9px] font-black text-slate-700 font-mono">
-                              {stats.percent}%
-                            </span>
-                          </div>
-                          <span className="w-8 text-[9px] font-bold text-slate-400 font-mono shrink-0">
-                            ({stats.count} bài)
-                          </span>
+                  return (
+                    <tr key={q.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-3 font-mono font-black text-indigo-700">{q.id}</td>
+                      <td className="p-3 max-w-xs leading-relaxed text-slate-800 font-bold">{q.text}</td>
+                      <td className="p-3 text-center font-mono font-bold">{totalCount}</td>
+                      
+                      {/* Cột DB yes_no_answers */}
+                      <td className="p-3 text-center bg-emerald-50/30 border-l border-r border-emerald-150/50">
+                        <div className="flex items-center justify-center gap-2 font-mono">
+                          <span className="text-emerald-700 font-black">Yes: {yesNoStats.yes.percent}%</span>
+                          <span className="text-slate-300">|</span>
+                          <span className="text-rose-700 font-black">No: {yesNoStats.no.percent}%</span>
                         </div>
-                      );
-                    })}
+                        <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
+                          ({yesNoStats.yes.count} Yes / {yesNoStats.no.count} No)
+                        </span>
+                      </td>
 
-                    {/* N/A representation removed */}
+                      {/* Cột DB likert_answers */}
+                      <td className="p-3 text-center bg-indigo-50/30 border-r border-indigo-150/50">
+                        <div className="flex items-center justify-center gap-2 font-mono">
+                          <span className="text-indigo-700 font-black">Score 5: {score5.percent}%</span>
+                          <span className="text-slate-300">|</span>
+                          <span className="text-amber-700 font-black">Score 1: {score1.percent}%</span>
+                        </div>
+                        <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
+                          ({score5.count} Điểm 5 / {score1.count} Điểm 1)
+                        </span>
+                      </td>
+
+                      {/* Status badge */}
+                      <td className="p-3 text-center">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase inline-block ${
+                          yesNoStats.yes.percent >= 70
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : yesNoStats.no.percent >= 50
+                            ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {yesNoStats.yes.percent >= 70 ? 'Đồng thuận cao' : yesNoStats.no.percent >= 50 ? 'Bất đồng' : 'Cân bằng'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 2. UNIFIED QUESTION DASHBOARD CARDS (GỘP HAI LOẠI ĐÁP ÁN CỦA 1 CÂU VÀO 1 DASHBOARD CARD) */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-3 w-3 rounded-full bg-indigo-600"></span>
+              <h3 className="font-extrabold text-sm text-slate-950 uppercase tracking-wide">
+                Chi Tiết Từng Câu Hỏi - Gộp Kết Quả 2 Cột Vào Cùng 1 Khung Dashboard (Part A)
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+              C1 - C7 Khảo sát chung
+            </span>
+          </div>
+
+          <div className="space-y-6">
+            {COMMON_LIKERT_QUESTIONS.map((q) => {
+              const { totalCount, percentages, yesNoStats } = getLikertPercentages(q.id);
+              const score5 = percentages['5'] || { count: 0, percent: 0 };
+              const score1 = percentages['1'] || { count: 0, percent: 0 };
+
+              return (
+                <div key={q.id} className="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-4.5 space-y-3.5">
+                  {/* Card Question Header */}
+                  <div className="flex justify-between items-start gap-3 border-b border-slate-200/60 pb-2.5">
+                    <div>
+                      <span className="font-mono font-black text-indigo-750 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded text-[10px]">
+                        {q.id}
+                      </span>
+                      <p className="text-xs font-extrabold text-slate-900 mt-1 leading-relaxed">
+                        {q.text}
+                      </p>
+                    </div>
+                    <span className="text-[9.5px] font-extrabold font-mono text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shrink-0">
+                      {totalCount} mẫu
+                    </span>
+                  </div>
+
+                  {/* GỘP 2 CỘT DATABASE VÀO 1 DASHBOARD GRID */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-0.5">
+                    
+                    {/* CỘT 1: yes_no_answers */}
+                    <div className="bg-white border border-emerald-200/90 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
+                        <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                          🟢 Cột DB `yes_no_answers`
+                        </span>
+                        <span className="text-[9px] font-mono font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Nhị phân
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-emerald-50/60 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-black text-emerald-800 uppercase block">😊 Yes (Đồng ý)</span>
+                          <span className="text-base font-black text-emerald-950 font-mono mt-0.5 block">{yesNoStats.yes.percent}%</span>
+                          <span className="text-[8.5px] font-bold text-emerald-600 font-mono">({yesNoStats.yes.count} mẫu)</span>
+                        </div>
+                        <div className="bg-rose-50/60 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-black text-rose-800 uppercase block">😞 No (Không đồng ý)</span>
+                          <span className="text-base font-black text-rose-950 font-mono mt-0.5 block">{yesNoStats.no.percent}%</span>
+                          <span className="text-[8.5px] font-bold text-rose-600 font-mono">({yesNoStats.no.count} mẫu)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CỘT 2: likert_answers */}
+                    <div className="bg-white border border-indigo-200/90 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
+                        <span className="text-[10px] font-black text-indigo-800 uppercase tracking-wider flex items-center gap-1">
+                          5️⃣ Cột DB `likert_answers`
+                        </span>
+                        <span className="text-[9px] font-mono font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          Điểm 1 & 5
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-indigo-50/60 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-black text-indigo-800 uppercase block">Score 5 (Yes)</span>
+                          <span className="text-base font-black text-indigo-950 font-mono mt-0.5 block">{score5.percent}%</span>
+                          <span className="text-[8.5px] font-bold text-indigo-600 font-mono">({score5.count} mẫu)</span>
+                        </div>
+                        <div className="bg-slate-100/70 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-black text-slate-700 uppercase block">Score 1 (No)</span>
+                          <span className="text-base font-black text-slate-900 font-mono mt-0.5 block">{score1.percent}%</span>
+                          <span className="text-[8.5px] font-bold text-slate-500 font-mono">({score1.count} mẫu)</span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               );
@@ -229,58 +402,85 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Group Likert charts block (5 Group Likert Charts) */}
-        <div className="grid grid-cols-1 gap-6">
+        {/* 3. GROUP LIKERT QUESTIONS UNIFIED DASHBOARD CARDS (Part B) */}
+        <div className="space-y-6">
           {SURVEY_GROUPS.map((gp) => {
             const gpQuestions = GROUP_LIKERT_QUESTIONS[gp.code] || [];
             return (
-              <div key={gp.code} className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-xs space-y-6">
+              <div key={gp.code} className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-xs space-y-5">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <span className="inline-flex h-3 w-3 rounded-full bg-amber-500"></span>
-                  <h3 className="font-extrabold text-sm text-slate-900 uppercase tracking-wide">
-                    II. Khảo sát riêng nhóm: {gp.name} ({gp.code})
+                  <h3 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">
+                    Khảo Sát Riêng Nhóm: {gp.name} ({gp.code})
                   </h3>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-5">
                   {gpQuestions.map((q) => {
-                    const { totalCount, percentages } = getLikertPercentages(q.id, gp.code);
-                    return (
-                      <div key={q.id} className="space-y-2 border-b border-slate-50 pb-5 last:border-0 last:pb-0">
-                        <p className="text-xs font-bold text-slate-800 leading-relaxed">
-                          {q.text.toUpperCase().startsWith(q.id.toUpperCase() + '.') ? q.text : `${q.id.toUpperCase()}: ${q.text}`}
-                        </p>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase font-mono">
-                          (Số bài làm của nhóm: {totalCount})
-                        </span>
+                    const { totalCount, percentages, yesNoStats } = getLikertPercentages(q.id, gp.code);
+                    const score5 = percentages['5'] || { count: 0, percent: 0 };
+                    const score1 = percentages['1'] || { count: 0, percent: 0 };
 
-                        <div className="space-y-1.5 pt-2">
-                          {[1, 2, 3, 4, 5].map((val) => {
-                            const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === val)!;
-                            const stats = percentages[String(val)] || { count: 0, percent: 0 };
-                            return (
-                              <div key={val} className="flex items-center gap-2 text-xs">
-                                <span className="w-14 text-[10px] text-slate-500 font-bold shrink-0 text-right leading-none">
-                                  {opt.emoji} {opt.label}
+                    return (
+                      <div key={q.id} className="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-4 space-y-3">
+                        <div className="flex justify-between items-start gap-3 border-b border-slate-200/60 pb-2">
+                          <p className="text-xs font-bold text-slate-800 leading-relaxed">{q.text}</p>
+                          <span className="text-[9.5px] font-extrabold font-mono text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shrink-0">
+                            {totalCount} mẫu
+                          </span>
+                        </div>
+
+                        {q.type === 'likert' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-0.5">
+                            {/* CỘT 1: yes_no_answers */}
+                            <div className="bg-white border border-emerald-200/90 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between border-b border-emerald-100 pb-1.5">
+                                <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                                  🟢 Cột DB `yes_no_answers`
                                 </span>
-                                <div className="flex-1 bg-slate-100 h-6 rounded-md overflow-hidden relative">
-                                  <div
-                                    className="bg-amber-500 h-full transition-all duration-300"
-                                    style={{ width: `${stats.percent}%` }}
-                                  />
-                                  <span className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[9px] font-black text-slate-800 font-mono">
-                                    {stats.percent}%
-                                  </span>
-                                </div>
-                                <span className="w-8 text-[9px] font-bold text-slate-400 font-mono shrink-0">
-                                  ({stats.count} bài)
+                                <span className="text-[9px] font-mono font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                  Nhị phân
                                 </span>
                               </div>
-                            );
-                          })}
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="bg-emerald-50/60 rounded-lg p-2 text-center">
+                                  <span className="text-[9px] font-black text-emerald-800 uppercase block">😊 Yes (Đồng ý)</span>
+                                  <span className="text-base font-black text-emerald-950 font-mono mt-0.5 block">{yesNoStats.yes.percent}%</span>
+                                  <span className="text-[8.5px] font-bold text-emerald-600 font-mono">({yesNoStats.yes.count} mẫu)</span>
+                                </div>
+                                <div className="bg-rose-50/60 rounded-lg p-2 text-center">
+                                  <span className="text-[9px] font-black text-rose-800 uppercase block">😞 No (Không đồng ý)</span>
+                                  <span className="text-base font-black text-rose-950 font-mono mt-0.5 block">{yesNoStats.no.percent}%</span>
+                                  <span className="text-[8.5px] font-bold text-rose-600 font-mono">({yesNoStats.no.count} mẫu)</span>
+                                </div>
+                              </div>
+                            </div>
 
-                          {/* N/A representation removed */}
-                        </div>
+                            {/* CỘT 2: likert_answers */}
+                            <div className="bg-white border border-indigo-200/90 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
+                                <span className="text-[10px] font-black text-indigo-800 uppercase tracking-wider flex items-center gap-1">
+                                  5️⃣ Cột DB `likert_answers`
+                                </span>
+                                <span className="text-[9px] font-mono font-extrabold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                  Điểm 1 & 5
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="bg-indigo-50/60 rounded-lg p-2 text-center">
+                                  <span className="text-[9px] font-black text-indigo-800 uppercase block">Score 5 (Yes)</span>
+                                  <span className="text-base font-black text-indigo-950 font-mono mt-0.5 block">{score5.percent}%</span>
+                                  <span className="text-[8.5px] font-bold text-indigo-600 font-mono">({score5.count} mẫu)</span>
+                                </div>
+                                <div className="bg-slate-100/70 rounded-lg p-2 text-center">
+                                  <span className="text-[9px] font-black text-slate-700 uppercase block">Score 1 (No)</span>
+                                  <span className="text-base font-black text-slate-900 font-mono mt-0.5 block">{score1.percent}%</span>
+                                  <span className="text-[8.5px] font-bold text-slate-500 font-mono">({score1.count} mẫu)</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -289,6 +489,7 @@ export const AdminDashboard: React.FC = () => {
             );
           })}
         </div>
+
       </div>
 
       {/* SUBMISSIONS LIST VIEWER LOG */}
@@ -340,7 +541,7 @@ export const AdminDashboard: React.FC = () => {
                 onClick={() => setSelectedSubmission(sub)}
                 className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors cursor-pointer text-xs"
               >
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-black text-indigo-750 bg-indigo-50 border border-indigo-150 px-2.5 py-0.5 rounded text-[10px]">
                       {sub.participant.code}
@@ -352,6 +553,20 @@ export const AdminDashboard: React.FC = () => {
                   <p className="text-[10px] text-slate-450 font-semibold leading-relaxed">
                     Hình thức: {sub.participant.participationForm} · {sub.participant.titleUnit || 'Chưa khai báo chức vụ'}
                   </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-[9px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                      <span className="opacity-75">Cột DB Yes/No:</span>
+                      <span className="font-mono font-black">
+                        {sub.yesNoAnswers && Object.keys(sub.yesNoAnswers).length > 0
+                          ? `✅ yes_no_answers (${Object.keys(sub.yesNoAnswers).length} đáp án)`
+                          : '🟢 yes_no_answers (Đồng bộ)'}
+                      </span>
+                    </span>
+                    <span className="text-[9px] font-extrabold bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                      <span className="opacity-75">Cột DB Likert:</span>
+                      <span className="font-mono font-black">✅ likert_answers</span>
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-400 font-bold font-mono text-[10px] shrink-0">
@@ -441,12 +656,31 @@ export const AdminDashboard: React.FC = () => {
                   {COMMON_LIKERT_QUESTIONS.map((q) => {
                     const ans = selectedSubmission.likertAnswers[q.id];
                     const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === ans);
+                    const yn = getYesNoAnswer(ans, 'vi');
                     return (
-                      <div key={q.id} className="space-y-0.5">
+                      <div key={q.id} className="space-y-1">
                         <p className="font-extrabold text-slate-800">{q.text}</p>
-                        <p className="text-indigo-700 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
-                          {ans === null ? 'Không áp dụng / Khác' : `${opt?.emoji} ${opt?.label} (${ans}/5)`}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          {/* Cột Data Likert */}
+                          <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1">
+                            <span className="text-[9px] font-black uppercase text-indigo-400">Data Likert:</span>
+                            {ans === null || ans === undefined ? 'Không áp dụng' : `${opt?.emoji} ${opt?.label} (${ans}/5)`}
+                          </span>
+
+                          {/* Cột Đáp án Yes/No */}
+                          {ans !== null && ans !== undefined && (
+                            <span className={`py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1 border ${
+                              yn.code === 'yes'
+                                ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                                : yn.code === 'no'
+                                ? 'text-rose-800 bg-rose-50 border-rose-200'
+                                : 'text-slate-700 bg-slate-100 border-slate-200'
+                            }`}>
+                              <span className="text-[9px] font-black uppercase opacity-60">Đáp án Yes/No:</span>
+                              {yn.code === 'yes' ? '✅ Đồng ý (Yes)' : yn.code === 'no' ? '❌ Không đồng ý (No)' : '⚪ Trung lập (Neutral)'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -464,12 +698,31 @@ export const AdminDashboard: React.FC = () => {
                     
                     if (q.type === 'likert') {
                       const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === ans);
+                      const yn = getYesNoAnswer(ans, 'vi');
                       return (
-                        <div key={q.id} className="space-y-0.5">
+                        <div key={q.id} className="space-y-1">
                           <p className="font-extrabold text-slate-800">{q.text}</p>
-                          <p className="text-indigo-700 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
-                            {opt?.emoji} {opt?.label} ({ans}/5)
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            {/* Cột Data Likert */}
+                            <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1">
+                              <span className="text-[9px] font-black uppercase text-indigo-400">Data Likert:</span>
+                              {ans === null || ans === undefined ? 'Không áp dụng' : `${opt?.emoji} ${opt?.label} (${ans}/5)`}
+                            </span>
+
+                            {/* Cột Đáp án Yes/No */}
+                            {ans !== null && ans !== undefined && (
+                              <span className={`py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1 border ${
+                                yn.code === 'yes'
+                                  ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                                  : yn.code === 'no'
+                                  ? 'text-rose-800 bg-rose-50 border-rose-200'
+                                  : 'text-slate-700 bg-slate-100 border-slate-200'
+                              }`}>
+                                <span className="text-[9px] font-black uppercase opacity-60">Đáp án Yes/No:</span>
+                                {yn.code === 'yes' ? '✅ Đồng ý (Yes)' : yn.code === 'no' ? '❌ Không đồng ý (No)' : '⚪ Trung lập (Neutral)'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     } else if (q.type === 'checkbox') {

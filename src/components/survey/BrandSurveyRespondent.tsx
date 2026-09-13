@@ -8,6 +8,7 @@ import {
   GROUP_LIKERT_QUESTIONS,
   INTERVIEW_QUESTIONS,
   TRANSLATIONS,
+  getYesNoAnswer,
 } from '../../data/surveyData';
 import { BrandSurveyService } from '../../services/surveyService';
 import { AccessibilityMenu, AccessibilitySettings } from '../conversational/AccessibilityMenu';
@@ -76,6 +77,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
   // Answers State
   const [likertAnswers, setLikertAnswers] = useState<Record<string, any>>({});
+  const [yesNoAnswers, setYesNoAnswers] = useState<Record<string, 'yes' | 'no' | string>>({});
   const [interviewAnswers, setInterviewAnswers] = useState<Record<string, { text: string; audioUrl: string | null }>>({});
 
   // UI Interactive States
@@ -116,7 +118,8 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     updatedLikert = likertAnswers,
     updatedInterview = interviewAnswers,
     force = false,
-    cameraConsentOverride?: string
+    cameraConsentOverride?: string,
+    updatedYesNo = yesNoAnswers
   ) => {
     if (!force && (step === 'welcome' || step === 'info' || step === 'consent')) return;
 
@@ -139,6 +142,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         id: participantCode ? `sub-${participantCode}` : `sub-${Date.now()}`,
         participant: finalParticipant,
         likertAnswers: updatedLikert,
+        yesNoAnswers: updatedYesNo,
         interviewAnswers: updatedInterview,
         submittedAt: new Date().toLocaleString('vi-VN'),
       };
@@ -328,7 +332,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     const q = COMMON_LIKERT_QUESTIONS[commonIndex];
     const ans = likertAnswers[q.id];
     if (q.required && (ans === undefined || ans === null)) {
-      setValidationError(lang === 'vi' ? 'Vui lòng chọn một mức độ đánh giá trước khi tiếp tục.' : 'Please select a rating level before continuing.');
+      setValidationError(lang === 'vi' ? 'Vui lòng chọn "Đồng ý" hoặc "Không đồng ý" trước khi tiếp tục.' : 'Please select "Yes" or "No" before continuing.');
       return;
     }
     if (commonIndex < COMMON_LIKERT_QUESTIONS.length - 1) {
@@ -360,7 +364,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
     const ans = likertAnswers[q.id];
 
     if (q.required && q.type === 'likert' && (ans === undefined || ans === null)) {
-      setValidationError(lang === 'vi' ? 'Vui lòng chọn một mức độ đánh giá trước khi tiếp tục.' : 'Please select a rating level before continuing.');
+      setValidationError(lang === 'vi' ? 'Vui lòng chọn "Đồng ý" hoặc "Không đồng ý" trước khi tiếp tục.' : 'Please select "Yes" or "No" before continuing.');
       return;
     }
 
@@ -478,10 +482,19 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   };
 
   const handleAnswerLikert = (qId: string, val: any) => {
-    const updated = { ...likertAnswers, [qId]: val };
-    setLikertAnswers(updated);
+    const updatedLikert = { ...likertAnswers, [qId]: val };
+    let yesNoVal = yesNoAnswers[qId];
+    if (val === 5 || val === 'yes' || val === 'Đồng ý' || val === 'Yes') {
+      yesNoVal = 'yes';
+    } else if (val === 1 || val === 'no' || val === 'Không đồng ý' || val === 'No') {
+      yesNoVal = 'no';
+    }
+    const updatedYesNo = { ...yesNoAnswers, [qId]: yesNoVal };
+    
+    setLikertAnswers(updatedLikert);
+    setYesNoAnswers(updatedYesNo);
     setValidationError(null);
-    saveProgressIncrementally(updated, interviewAnswers);
+    saveProgressIncrementally(updatedLikert, interviewAnswers, false, undefined, updatedYesNo);
   };
 
   const handleInterviewResponse = (qId: string, text: string, audioUrl: string | null) => {
@@ -543,6 +556,7 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
         id: `sub-${Date.now()}`,
         participant: finalParticipant,
         likertAnswers,
+        yesNoAnswers,
         interviewAnswers: uploadedInterviewAnswers,
         submittedAt: new Date().toLocaleString('vi-VN'),
       };
@@ -1117,37 +1131,45 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 </div>
               </div>
 
-              {/* Horizontal Emoji Options List */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-5 gap-2.5">
+              {/* 2-Option Yes/No Buttons */}
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-2 gap-4">
                   {LIKERT_SCALE_OPTIONS.map((opt) => {
-                    const isSelected = likertAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id] === opt.value;
+                    const currentVal = likertAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id];
+                    const isSelected = currentVal === opt.value || yesNoAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id] === opt.code;
                     const labelText = lang === 'vi' ? opt.label : opt.labelEn;
+                    const isYes = opt.code === 'yes';
+
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => handleAnswerLikert(COMMON_LIKERT_QUESTIONS[commonIndex].id, opt.value)}
-                        className={`py-3.5 px-1 border-2 rounded-2xl flex flex-col items-center justify-between min-h-24 text-center cursor-pointer transition-all active:scale-[0.93] ${
+                        className={`py-5 px-3 border-3 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all active:scale-95 shadow-xs ${
                           accessSettings.highContrast
                             ? isSelected
                               ? 'bg-black border-black text-white'
                               : 'bg-white border-black text-black'
                             : isSelected
-                            ? 'bg-indigo-50 border-indigo-650 text-indigo-950 ring-4 ring-indigo-100 shadow-sm scale-[1.06]'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? isYes
+                              ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-4 ring-emerald-100 scale-[1.03]'
+                              : 'bg-rose-50 border-rose-600 text-rose-950 ring-4 ring-rose-100 scale-[1.03]'
+                            : isYes
+                            ? 'bg-white border-slate-200 hover:border-emerald-300 text-slate-700 hover:bg-emerald-50/40'
+                            : 'bg-white border-slate-200 hover:border-rose-300 text-slate-700 hover:bg-rose-50/40'
                         }`}
                       >
-                        <span className="text-3xl leading-none">{opt.emoji}</span>
-                        <span className="text-[11.5px] font-bold tracking-tight mt-2 text-slate-500 leading-tight">
-                          {renderLikertLabel(labelText)}
+                        <span className="text-4xl leading-none mb-2">{opt.emoji}</span>
+                        <span className="text-base font-black tracking-tight leading-tight">
+                          {labelText}
                         </span>
-                        <span className="text-xs font-black font-mono mt-1 leading-none">{opt.value}</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">
+                          {isYes ? '(Yes)' : '(No)'}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
-
               </div>
 
               {/* Navigation */}
@@ -1215,32 +1237,41 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
               {/* Questionnaire controls based on type */}
               {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].type === 'likert' ? (
-                /* Horizontal Emoji Options List */
-                <div className="space-y-4">
-                  <div className="grid grid-cols-5 gap-2.5">
+                /* 2-Option Yes/No Buttons */
+                <div className="space-y-4 pt-2">
+                  <div className="grid grid-cols-2 gap-4">
                     {LIKERT_SCALE_OPTIONS.map((opt) => {
-                      const isSelected = likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] === opt.value;
+                      const currentVal = likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id];
+                      const isSelected = currentVal === opt.value || yesNoAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] === opt.code;
                       const labelText = lang === 'vi' ? opt.label : opt.labelEn;
+                      const isYes = opt.code === 'yes';
+
                       return (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => handleAnswerLikert(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id, opt.value)}
-                          className={`py-3.5 px-1 border-2 rounded-2xl flex flex-col items-center justify-between min-h-24 text-center cursor-pointer transition-all active:scale-[0.93] ${
+                          className={`py-5 px-3 border-3 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all active:scale-95 shadow-xs ${
                             accessSettings.highContrast
                               ? isSelected
                                 ? 'bg-black border-black text-white'
                                 : 'bg-white border-black text-black'
                               : isSelected
-                              ? 'bg-indigo-50 border-indigo-650 text-indigo-950 ring-4 ring-indigo-100 shadow-sm scale-[1.06]'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                              ? isYes
+                                ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-4 ring-emerald-100 scale-[1.03]'
+                                : 'bg-rose-50 border-rose-600 text-rose-950 ring-4 ring-rose-100 scale-[1.03]'
+                              : isYes
+                              ? 'bg-white border-slate-200 hover:border-emerald-300 text-slate-700 hover:bg-emerald-50/40'
+                              : 'bg-white border-slate-200 hover:border-rose-300 text-slate-700 hover:bg-rose-50/40'
                           }`}
                         >
-                          <span className="text-3xl leading-none">{opt.emoji}</span>
-                          <span className="text-[11.5px] font-bold tracking-tight mt-2 text-slate-500 leading-tight">
-                            {renderLikertLabel(labelText)}
+                          <span className="text-4xl leading-none mb-2">{opt.emoji}</span>
+                          <span className="text-base font-black tracking-tight leading-tight">
+                            {labelText}
                           </span>
-                          <span className="text-xs font-black font-mono mt-1 leading-none">{opt.value}</span>
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">
+                            {isYes ? '(Yes)' : '(No)'}
+                          </span>
                         </button>
                       );
                     })}
@@ -1598,12 +1629,31 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === ans);
                     const qText = lang === 'vi' ? q.text : (q.textEn || q.text);
                     const optLabel = opt ? (lang === 'vi' ? opt.label : opt.labelEn) : '';
+                    const yn = getYesNoAnswer(ans, lang);
                     return (
-                      <div key={q.id} className="space-y-0.5">
+                      <div key={q.id} className="space-y-1">
                         <p className="font-bold text-slate-800">{qText}</p>
-                        <p className="text-indigo-700 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
-                          {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1">
+                            <span className="text-[9px] font-black uppercase text-indigo-400">Data Likert:</span>
+                            {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
+                          </span>
+
+                          {ans !== null && ans !== undefined && (
+                            <span className={`py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1 border ${
+                              yn.code === 'yes'
+                                ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                                : yn.code === 'no'
+                                ? 'text-rose-800 bg-rose-50 border-rose-200'
+                                : 'text-slate-700 bg-slate-100 border-slate-200'
+                            }`}>
+                              <span className="text-[9px] font-black uppercase opacity-60">
+                                {lang === 'vi' ? 'Đáp án Yes/No:' : 'Yes/No Answer:'}
+                              </span>
+                              {yn.code === 'yes' ? `✅ ${yn.text}` : yn.code === 'no' ? `❌ ${yn.text}` : `⚪ ${yn.text}`}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1625,12 +1675,31 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     if (q.type === 'likert') {
                       const opt = LIKERT_SCALE_OPTIONS.find((o) => o.value === ans);
                       const optLabel = opt ? (lang === 'vi' ? opt.label : opt.labelEn) : '';
+                      const yn = getYesNoAnswer(ans, lang);
                       return (
-                        <div key={q.id} className="space-y-0.5">
+                        <div key={q.id} className="space-y-1">
                           <p className="font-bold text-slate-800">{qText}</p>
-                          <p className="text-indigo-755 bg-indigo-50 border border-indigo-150 py-1.5 px-3 rounded-xl w-fit flex items-center gap-1 font-black">
-                            {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1">
+                              <span className="text-[9px] font-black uppercase text-indigo-400">Data Likert:</span>
+                              {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
+                            </span>
+
+                            {ans !== null && ans !== undefined && (
+                              <span className={`py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1 border ${
+                                yn.code === 'yes'
+                                  ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                                  : yn.code === 'no'
+                                  ? 'text-rose-800 bg-rose-50 border-rose-200'
+                                  : 'text-slate-700 bg-slate-100 border-slate-200'
+                              }`}>
+                                <span className="text-[9px] font-black uppercase opacity-60">
+                                  {lang === 'vi' ? 'Đáp án Yes/No:' : 'Yes/No Answer:'}
+                                </span>
+                                {yn.code === 'yes' ? `✅ ${yn.text}` : yn.code === 'no' ? `❌ ${yn.text}` : `⚪ ${yn.text}`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     } else if (q.type === 'checkbox') {

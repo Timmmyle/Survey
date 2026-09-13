@@ -185,6 +185,7 @@ export class BrandSurveyService {
           consent_record: submission.participant.consentRecord,
           consent_camera: submission.participant.consentCamera || null,
           likert_answers: submission.likertAnswers,
+          yes_no_answers: submission.yesNoAnswers || {},
           interview_answers: submission.interviewAnswers,
           submitted_at: new Date().toISOString()
         };
@@ -277,6 +278,7 @@ export class BrandSurveyService {
             createdAt: new Date(row.submitted_at).toLocaleString('vi-VN'),
           },
           likertAnswers: row.likert_answers,
+          yesNoAnswers: row.yes_no_answers || {},
           interviewAnswers: row.interview_answers,
           submittedAt: new Date(row.submitted_at).toLocaleString('vi-VN'),
         }));
