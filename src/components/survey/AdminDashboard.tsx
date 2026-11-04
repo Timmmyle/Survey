@@ -23,7 +23,51 @@ export const AdminDashboard: React.FC = () => {
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>('All');
   const [selectedSubmission, setSelectedSubmission] = useState<BrandSurveySubmission | null>(null);
   const [reportTabMode, setReportTabMode] = useState<'all' | 'likert' | 'yesno'>('all');
+  const [activeInterviewGroup, setActiveInterviewGroup] = useState<string>('CG-MT');
   const [isLoading, setIsLoading] = useState(true);
+
+  const renderInterviewQuestion = (fullText: string) => {
+    const parts = fullText.split('\n').map((p) => p.trim()).filter(Boolean);
+    const rawMain = parts[0] || '';
+    const subQuestions = parts.slice(1);
+
+    const tagMatch = rawMain.match(/\[(.*?)\]/);
+    const mainQuestion = rawMain.replace(/\[(.*?)\]/, '').trim();
+    const tagText = tagMatch ? tagMatch[1] : null;
+
+    return (
+      <div className="space-y-1.5">
+        {tagText && (
+          <span className="inline-block text-[9.5px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full mb-0.5 shadow-2xs">
+            🏷️ {tagText}
+          </span>
+        )}
+        <p className="font-extrabold text-slate-900 text-xs leading-relaxed">
+          {mainQuestion}
+        </p>
+        {subQuestions.length > 0 && (
+          <div className="space-y-1 font-normal text-[11px] text-slate-600 leading-relaxed bg-white/90 p-2.5 rounded-xl border border-slate-200/70 mt-1">
+            {subQuestions.map((sub, idx) => (
+              <span key={idx} className="block">
+                {sub}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getInterviewResponsesForQuestion = (qId: string) => {
+    return submissions
+      .filter((s) => s.interviewAnswers && s.interviewAnswers[qId] && (s.interviewAnswers[qId].text || s.interviewAnswers[qId].audioUrl))
+      .map((s) => ({
+        submissionId: s.id,
+        participant: s.participant,
+        submittedAt: s.submittedAt,
+        answer: s.interviewAnswers[qId],
+      }));
+  };
 
   // Load submissions asynchronously
   const loadSubmissionsData = async () => {
@@ -227,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
               <h3 className="font-extrabold text-xs text-slate-950 uppercase tracking-wide">
-                Bảng Thống Kê Tổng Hợp Gộp 2 Cột Database (`yes_no_answers` & `likert_answers`)
+                I. Bảng Thống Kê Tổng Hợp Gộp 2 Cột Database (`yes_no_answers` & `likert_answers`)
               </h3>
             </div>
             <span className="text-[9px] font-mono font-extrabold text-slate-400 uppercase">
@@ -313,7 +357,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="inline-flex h-3 w-3 rounded-full bg-indigo-600"></span>
               <h3 className="font-extrabold text-sm text-slate-950 uppercase tracking-wide">
-                Chi Tiết Từng Câu Hỏi - Gộp Kết Quả 2 Cột Vào Cùng 1 Khung Dashboard (Part A)
+                II. Chi Tiết Từng Câu Hỏi - Gộp Kết Quả 2 Cột Vào Cùng 1 Khung Dashboard (Part A - C1 Đến C7)
               </h3>
             </div>
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
@@ -411,7 +455,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <span className="inline-flex h-3 w-3 rounded-full bg-amber-500"></span>
                   <h3 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">
-                    Khảo Sát Riêng Nhóm: {gp.name} ({gp.code})
+                    III. Khảo Sát Riêng Theo Nhóm Đối Tượng (Part B): {gp.name} ({gp.code})
                   </h3>
                 </div>
 
@@ -490,6 +534,166 @@ export const AdminDashboard: React.FC = () => {
           })}
         </div>
 
+        {/* IV. BÁO CÁO & TỔNG HỢP Ý KIẾN PHỎNG VẤN SÂU (PART C) */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 md:p-6 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-3 w-3 rounded-full bg-violet-600"></span>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-950 uppercase tracking-wide">
+                  IV. Báo Cáo & Tổng Hợp Ý Kiến Phỏng Vấn Sâu (Part C)
+                </h3>
+                <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                  Tổng hợp câu hỏi phỏng vấn sâu, định hướng tạo hình và phản hồi phỏng vấn của các nhóm chuyên gia
+                </p>
+              </div>
+            </div>
+
+            {/* Group Tab Switcher for Part C */}
+            <div className="flex flex-wrap gap-1.5 bg-slate-100 p-1 rounded-2xl">
+              {SURVEY_GROUPS.filter((g) => g.code !== 'KG-ĐT').map((g) => (
+                <button
+                  key={g.code}
+                  type="button"
+                  onClick={() => setActiveInterviewGroup(g.code)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all ${
+                    activeInterviewGroup === g.code
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  }`}
+                >
+                  {g.code} ({g.name})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Interview Question Cards for Selected Group */}
+          <div className="space-y-5">
+            {(INTERVIEW_QUESTIONS[activeInterviewGroup] || []).map((q) => {
+              const responses = getInterviewResponsesForQuestion(q.id);
+
+              return (
+                <div
+                  key={q.id}
+                  className={`border rounded-2xl p-4 md:p-5 space-y-4 transition-all ${
+                    q.id === 'DS-I08'
+                      ? 'bg-amber-50/40 border-amber-300 ring-2 ring-amber-100'
+                      : 'bg-slate-50/70 border-slate-200'
+                  }`}
+                >
+                  {/* Question Header */}
+                  <div className="flex justify-between items-start gap-3 border-b border-slate-200/70 pb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded text-[10px]">
+                          {q.id}
+                        </span>
+                        {q.id === 'DS-I08' && (
+                          <span className="text-[9.5px] font-black uppercase text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300">
+                            ★ Trọng tâm cập nhật
+                          </span>
+                        )}
+                      </div>
+                      {renderInterviewQuestion(q.text)}
+                    </div>
+                    <span className="text-[10px] font-extrabold font-mono text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shrink-0">
+                      {responses.length} ý kiến phản hồi
+                    </span>
+                  </div>
+
+                  {/* Responses list */}
+                  <div className="space-y-3">
+                    {responses.length === 0 ? (
+                      <p className="text-slate-400 italic text-xs py-2">
+                        Chưa có ý kiến phản hồi cho câu hỏi này từ các bài khảo sát đã gửi.
+                      </p>
+                    ) : (
+                      responses.map((resp, rIdx) => (
+                        <div
+                          key={resp.submissionId || rIdx}
+                          className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs shadow-2xs"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-1.5 text-[11px]">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                                {resp.participant.code}
+                              </span>
+                              {resp.participant.fullName && (
+                                <span className="font-bold text-slate-800">
+                                  {resp.participant.fullName}
+                                </span>
+                              )}
+                              {resp.participant.titleUnit && (
+                                <span className="text-slate-500 text-[10px]">
+                                  ({resp.participant.titleUnit})
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {resp.submittedAt}
+                            </span>
+                          </div>
+
+                          {/* Text Answer */}
+                          {resp.answer.text && (
+                            <div className="text-slate-750 font-medium leading-relaxed bg-slate-50/70 p-2.5 rounded-lg border border-slate-150">
+                              <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                                [Nội dung phản hồi / Chuyển tự âm thanh]:
+                              </span>
+                              <p className="whitespace-pre-line text-xs">
+                                {cleanAudioText(resp.answer.text)}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Audio/Video Record */}
+                          {resp.answer.audioUrl && (
+                            <div className="flex flex-wrap items-center gap-3 pt-1">
+                              {resp.answer.audioUrl.toLowerCase().includes('.webm') || resp.answer.audioUrl.toLowerCase().includes('.mp4') || resp.answer.audioUrl.startsWith('blob:') ? (
+                                <div className="space-y-1.5">
+                                  <video
+                                    src={resp.answer.audioUrl}
+                                    controls
+                                    playsInline
+                                    className="h-28 rounded-lg bg-black"
+                                  />
+                                  <a
+                                    href={resp.answer.audioUrl}
+                                    download={`interview_${resp.participant.code}_${q.id}.webm`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all cursor-pointer"
+                                  >
+                                    <Download className="h-3 w-3" /> Tải video về
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <audio src={resp.answer.audioUrl} controls className="h-7" />
+                                  <a
+                                    href={resp.answer.audioUrl}
+                                    download={`interview_${resp.participant.code}_${q.id}.wav`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all cursor-pointer"
+                                  >
+                                    <Download className="h-3 w-3" /> Tải âm thanh về
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
 
       {/* SUBMISSIONS LIST VIEWER LOG */}
@@ -497,7 +701,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs uppercase tracking-wide">
             <FolderOpen className="h-4.5 w-4.5 text-slate-400" />
-            Nhật ký phản hồi ({filteredSubmissions.length} bài)
+            V. Nhật ký phản hồi ({filteredSubmissions.length} bài)
           </div>
 
           {/* Group Filter Toggles */}
@@ -769,7 +973,7 @@ export const AdminDashboard: React.FC = () => {
                       const ans = selectedSubmission.interviewAnswers[q.id];
                       return (
                         <div key={q.id} className="space-y-1.5">
-                          <p className="font-bold text-slate-800">{q.text}</p>
+                          {renderInterviewQuestion(q.text)}
                           <div className="pl-3.5 border-l-2 border-slate-200 space-y-2">
                              {ans?.text ? (
                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mt-1 space-y-1 w-fit max-w-xl">

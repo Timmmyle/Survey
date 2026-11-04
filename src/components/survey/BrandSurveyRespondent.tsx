@@ -608,16 +608,25 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
   const renderQuestionText = (fullText: string) => {
     const parts = fullText.split('\n').map((p) => p.trim()).filter(Boolean);
-    const mainQuestion = parts[0];
+    const rawMain = parts[0] || '';
     const subQuestions = parts.slice(1);
+
+    const tagMatch = rawMain.match(/\[(.*?)\]/);
+    const mainQuestion = rawMain.replace(/\[(.*?)\]/, '').trim();
+    const tagText = tagMatch ? tagMatch[1] : null;
 
     return (
       <div className="space-y-2">
+        {tagText && (
+          <span className="inline-block text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-full shadow-2xs">
+            🏷️ {tagText}
+          </span>
+        )}
         <span className={`block font-bold text-slate-950 leading-snug tracking-tight ${getQuestionSizeClass()}`}>
           {mainQuestion}
         </span>
         {subQuestions.length > 0 && (
-          <div className="space-y-1 font-normal text-[11px] md:text-xs text-slate-500 leading-relaxed">
+          <div className="space-y-1 font-normal text-[11px] md:text-xs text-slate-600 leading-relaxed bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70 mt-1">
             {subQuestions.map((sub, idx) => (
               <span key={idx} className="block">
                 {sub}
