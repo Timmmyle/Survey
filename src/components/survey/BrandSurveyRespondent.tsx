@@ -609,17 +609,21 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
   const renderQuestionText = (fullText: string) => {
     const parts = fullText.split('\n').map((p) => p.trim()).filter(Boolean);
     const mainQuestion = parts[0];
-    const subQuestion = parts[1];
+    const subQuestions = parts.slice(1);
 
     return (
       <div className="space-y-2">
         <span className={`block font-bold text-slate-950 leading-snug tracking-tight ${getQuestionSizeClass()}`}>
           {mainQuestion}
         </span>
-        {subQuestion && (
-          <span className="block font-normal text-[11px] md:text-xs text-slate-500 leading-relaxed">
-            {subQuestion}
-          </span>
+        {subQuestions.length > 0 && (
+          <div className="space-y-1 font-normal text-[11px] md:text-xs text-slate-500 leading-relaxed">
+            {subQuestions.map((sub, idx) => (
+              <span key={idx} className="block">
+                {sub}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     );
