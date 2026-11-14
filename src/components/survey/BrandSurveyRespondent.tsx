@@ -1144,41 +1144,33 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                 </div>
               </div>
 
-              {/* 2-Option Yes/No Buttons */}
+              {/* Horizontal Emoji Options List (Thang đo Likert 5 mức) */}
               <div className="space-y-4 pt-2">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-5 gap-2 md:gap-3">
                   {LIKERT_SCALE_OPTIONS.map((opt) => {
-                    const currentVal = likertAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id];
-                    const isSelected = currentVal === opt.value || yesNoAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id] === opt.code;
+                    const isSelected = likertAnswers[COMMON_LIKERT_QUESTIONS[commonIndex].id] === opt.value;
                     const labelText = lang === 'vi' ? opt.label : opt.labelEn;
-                    const isYes = opt.code === 'yes';
 
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => handleAnswerLikert(COMMON_LIKERT_QUESTIONS[commonIndex].id, opt.value)}
-                        className={`py-5 px-3 border-3 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all active:scale-95 shadow-xs ${
+                        className={`py-3.5 px-1 border-2 rounded-2xl flex flex-col items-center justify-between min-h-24 text-center cursor-pointer transition-all active:scale-[0.93] ${
                           accessSettings.highContrast
                             ? isSelected
                               ? 'bg-black border-black text-white'
                               : 'bg-white border-black text-black'
                             : isSelected
-                            ? isYes
-                              ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-4 ring-emerald-100 scale-[1.03]'
-                              : 'bg-rose-50 border-rose-600 text-rose-950 ring-4 ring-rose-100 scale-[1.03]'
-                            : isYes
-                            ? 'bg-white border-slate-200 hover:border-emerald-300 text-slate-700 hover:bg-emerald-50/40'
-                            : 'bg-white border-slate-200 hover:border-rose-300 text-slate-700 hover:bg-rose-50/40'
+                            ? 'bg-indigo-50 border-indigo-650 text-indigo-950 ring-4 ring-indigo-100 shadow-sm scale-[1.05]'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <span className="text-4xl leading-none mb-2">{opt.emoji}</span>
-                        <span className="text-base font-black tracking-tight leading-tight">
-                          {labelText}
+                        <span className="text-3xl md:text-4xl leading-none">{opt.emoji}</span>
+                        <span className="text-[11px] md:text-xs font-bold tracking-tight mt-2 text-slate-600 leading-tight">
+                          {renderLikertLabel(labelText)}
                         </span>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">
-                          {isYes ? '(Yes)' : '(No)'}
-                        </span>
+                        <span className="text-xs font-black font-mono mt-1 leading-none text-slate-400">{opt.value}</span>
                       </button>
                     );
                   })}
@@ -1250,41 +1242,33 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
 
               {/* Questionnaire controls based on type */}
               {GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].type === 'likert' ? (
-                /* 2-Option Yes/No Buttons */
+                /* Horizontal Emoji Options List (Thang đo Likert 5 mức) */
                 <div className="space-y-4 pt-2">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-5 gap-2 md:gap-3">
                     {LIKERT_SCALE_OPTIONS.map((opt) => {
-                      const currentVal = likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id];
-                      const isSelected = currentVal === opt.value || yesNoAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] === opt.code;
+                      const isSelected = likertAnswers[GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id] === opt.value;
                       const labelText = lang === 'vi' ? opt.label : opt.labelEn;
-                      const isYes = opt.code === 'yes';
 
                       return (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => handleAnswerLikert(GROUP_LIKERT_QUESTIONS[selectedGroup][groupIndex].id, opt.value)}
-                          className={`py-5 px-3 border-3 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all active:scale-95 shadow-xs ${
+                          className={`py-3.5 px-1 border-2 rounded-2xl flex flex-col items-center justify-between min-h-24 text-center cursor-pointer transition-all active:scale-[0.93] ${
                             accessSettings.highContrast
                               ? isSelected
                                 ? 'bg-black border-black text-white'
                                 : 'bg-white border-black text-black'
                               : isSelected
-                              ? isYes
-                                ? 'bg-emerald-50 border-emerald-600 text-emerald-950 ring-4 ring-emerald-100 scale-[1.03]'
-                                : 'bg-rose-50 border-rose-600 text-rose-950 ring-4 ring-rose-100 scale-[1.03]'
-                              : isYes
-                              ? 'bg-white border-slate-200 hover:border-emerald-300 text-slate-700 hover:bg-emerald-50/40'
-                              : 'bg-white border-slate-200 hover:border-rose-300 text-slate-700 hover:bg-rose-50/40'
+                              ? 'bg-indigo-50 border-indigo-650 text-indigo-950 ring-4 ring-indigo-100 shadow-sm scale-[1.05]'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                           }`}
                         >
-                          <span className="text-4xl leading-none mb-2">{opt.emoji}</span>
-                          <span className="text-base font-black tracking-tight leading-tight">
-                            {labelText}
+                          <span className="text-3xl md:text-4xl leading-none">{opt.emoji}</span>
+                          <span className="text-[11px] md:text-xs font-bold tracking-tight mt-2 text-slate-600 leading-tight">
+                            {renderLikertLabel(labelText)}
                           </span>
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mt-1">
-                            {isYes ? '(Yes)' : '(No)'}
-                          </span>
+                          <span className="text-xs font-black font-mono mt-1 leading-none text-slate-400">{opt.value}</span>
                         </button>
                       );
                     })}
@@ -1646,26 +1630,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                     return (
                       <div key={q.id} className="space-y-1">
                         <p className="font-bold text-slate-800">{qText}</p>
-                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                          <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1">
-                            <span className="text-[9px] font-black uppercase text-indigo-400">Data Likert:</span>
+                        <div className="pt-0.5">
+                          <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1.5 px-3 rounded-xl font-extrabold text-xs inline-flex items-center gap-1.5">
                             {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
                           </span>
-
-                          {ans !== null && ans !== undefined && (
-                            <span className={`py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1 border ${
-                              yn.code === 'yes'
-                                ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
-                                : yn.code === 'no'
-                                ? 'text-rose-800 bg-rose-50 border-rose-200'
-                                : 'text-slate-700 bg-slate-100 border-slate-200'
-                            }`}>
-                              <span className="text-[9px] font-black uppercase opacity-60">
-                                {lang === 'vi' ? 'Đáp án Yes/No:' : 'Yes/No Answer:'}
-                              </span>
-                              {yn.code === 'yes' ? `✅ ${yn.text}` : yn.code === 'no' ? `❌ ${yn.text}` : `⚪ ${yn.text}`}
-                            </span>
-                          )}
                         </div>
                       </div>
                     );
@@ -1692,26 +1660,10 @@ export const BrandSurveyRespondent: React.FC<BrandSurveyRespondentProps> = ({
                       return (
                         <div key={q.id} className="space-y-1">
                           <p className="font-bold text-slate-800">{qText}</p>
-                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                            <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1">
-                              <span className="text-[9px] font-black uppercase text-indigo-400">Data Likert:</span>
+                          <div className="pt-0.5">
+                            <span className="text-indigo-800 bg-indigo-50 border border-indigo-200 py-1.5 px-3 rounded-xl font-extrabold text-xs inline-flex items-center gap-1.5">
                               {ans === null || ans === undefined ? (lang === 'vi' ? 'Chưa trả lời' : 'Not answered') : `${opt?.emoji} ${optLabel} (${ans}/5)`}
                             </span>
-
-                            {ans !== null && ans !== undefined && (
-                              <span className={`py-1 px-3 rounded-xl font-extrabold text-[11px] flex items-center gap-1 border ${
-                                yn.code === 'yes'
-                                  ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
-                                  : yn.code === 'no'
-                                  ? 'text-rose-800 bg-rose-50 border-rose-200'
-                                  : 'text-slate-700 bg-slate-100 border-slate-200'
-                              }`}>
-                                <span className="text-[9px] font-black uppercase opacity-60">
-                                  {lang === 'vi' ? 'Đáp án Yes/No:' : 'Yes/No Answer:'}
-                                </span>
-                                {yn.code === 'yes' ? `✅ ${yn.text}` : yn.code === 'no' ? `❌ ${yn.text}` : `⚪ ${yn.text}`}
-                              </span>
-                            )}
                           </div>
                         </div>
                       );

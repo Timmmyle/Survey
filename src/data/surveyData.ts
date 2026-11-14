@@ -59,17 +59,20 @@ export const SURVEY_GROUPS: SurveyGroup[] = [
 
 export interface LikertScaleOption {
   value: number;
-  code: 'yes' | 'no';
   emoji: string;
   label: string;
   labelEn: string;
-  yesNo: string;
-  yesNoEn: string;
+  code?: 'yes' | 'no';
+  yesNo?: string;
+  yesNoEn?: string;
 }
 
 export const LIKERT_SCALE_OPTIONS: LikertScaleOption[] = [
-  { value: 5, code: 'yes', emoji: '😊', label: 'Đồng ý', labelEn: 'Yes', yesNo: 'Đồng ý', yesNoEn: 'Yes' },
-  { value: 1, code: 'no', emoji: '😞', label: 'Không đồng ý', labelEn: 'No', yesNo: 'Không đồng ý', yesNoEn: 'No' },
+  { value: 1, emoji: '😞', label: 'Hoàn toàn không đồng ý', labelEn: 'Strongly disagree', code: 'no' },
+  { value: 2, emoji: '😐', label: 'Không đồng ý', labelEn: 'Disagree', code: 'no' },
+  { value: 3, emoji: '🙂', label: 'Trung lập', labelEn: 'Neutral' },
+  { value: 4, emoji: '😊', label: 'Đồng ý', labelEn: 'Agree', code: 'yes' },
+  { value: 5, emoji: '🤩', label: 'Hoàn toàn đồng ý', labelEn: 'Strongly agree', code: 'yes' },
 ];
 
 export const getYesNoAnswer = (val: any, lang: 'vi' | 'en' = 'vi'): { text: string; code: 'yes' | 'no' | 'na' } => {
