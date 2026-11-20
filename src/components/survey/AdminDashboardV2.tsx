@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrandSurveyService } from '../../services/surveyService';
-import { BrandSurveyV2Service, V2Submission } from '../../services/surveyServiceV2';
+import { BrandSurveyV2Service, V2SubmissionRecord } from '../../services/surveyServiceV2';
 import { BrandSurveySubmission } from '../../types';
 import { isSupabaseConfigured, isSupabaseV2Configured } from '../../services/supabaseClient';
-import { V2_PHIEU_CONFIGS } from '../../data/surveyData_v2';
-import { SURVEY_GROUPS } from '../../data/surveyData';
+import { V2_PARTICIPANT_GROUPS } from '../../data/surveyData_v2';
 import {
   BarChart3, Users, Database, Image as ImageIcon,
   RotateCcw, ChevronRight, X, Loader2, Download, Eye,
@@ -16,13 +15,13 @@ import { ImageUploadPanel } from '../admin/ImageUploadPanel';
 export const AdminDashboardV2: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'v1' | 'v2' | 'images' | 'compare'>('v2');
   const [v1Subs, setV1Subs] = useState<BrandSurveySubmission[]>([]);
-  const [v2Subs, setV2Subs] = useState<V2Submission[]>([]);
-  const [selectedV2Sub, setSelectedV2Sub] = useState<V2Submission | null>(null);
+  const [v2Subs, setV2Subs] = useState<V2SubmissionRecord[]>([]);
+  const [selectedV2Sub, setSelectedV2Sub] = useState<V2SubmissionRecord | null>(null);
   const [selectedV2GroupFilter, setSelectedV2GroupFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
-    setIsLoading(false);
+    setIsLoading(true);
     try {
       const [v1, v2] = await Promise.all([
         BrandSurveyService.getSubmissions(),
@@ -57,14 +56,15 @@ export const AdminDashboardV2: React.FC = () => {
     return s.groupCode === selectedV2GroupFilter;
   });
 
-  const getSemanticAvg = (questionId: string, groupCode?: string): { avg: string | null; count: number } => {
+  // Calculate average for numeric Likert answers (D1, D2, D3...)
+  const getQuestionAvg = (questionId: string, groupCode?: string): { avg: string | null; count: number } => {
     const relevant = v2Subs.filter(s => {
       if (groupCode && s.groupCode !== groupCode) return false;
-      const ans = s.semanticAnswers[questionId];
-      return ans && ans.value !== null && ans.value !== undefined;
+      const ans = s.answers[questionId];
+      return typeof ans === 'number';
     });
     if (relevant.length === 0) return { avg: null, count: 0 };
-    const sum = relevant.reduce((acc, s) => acc + (s.semanticAnswers[questionId].value || 0), 0);
+    const sum = relevant.reduce((acc, s) => acc + (s.answers[questionId] as number), 0);
     return { avg: (sum / relevant.length).toFixed(2), count: relevant.length };
   };
 
@@ -206,7 +206,7 @@ export const AdminDashboardV2: React.FC = () => {
               </div>
             </div>
 
-            {SURVEY_GROUPS.map(gp => {
+            {V2_PARTICIPANT_GROUPS.map(gp => {
               const count = v2Subs.filter(s => s.groupCode === gp.code).length;
               return (
                 <div key={gp.code} className="bg-white border border-slate-200 p-3 rounded-2xl shadow-xs flex flex-col justify-between">
@@ -215,81 +215,6 @@ export const AdminDashboardV2: React.FC = () => {
                 </div>
               );
             })}
-          </div>
-
-          {/* Semantic Scores Summary Per Phieu */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                <h2 className="font-extrabold text-sm text-slate-950 uppercase tracking-wide">
-                  Điểm Đánh Giá Thang Đo 1-5 (Semantic Differential)
-                </h2>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-slate-400">
-                Thang 1 (Cực thấp) ➔ 5 (Cực cao)
-              </span>
-            </div>
-
-            <div className="space-y-6">
-              {V2_PHIEU_CONFIGS.map(phieu => {
-                const subsInGroup = v2Subs.filter(s => s.groupCode === phieu.groupCode);
-                return (
-                  <div key={phieu.phieuId} className="border border-slate-150 rounded-2xl p-4.5 space-y-4 bg-slate-50/50">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <span className="text-[10px] font-mono font-black text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">
-                          {phieu.phieuId} · {phieu.groupCode}
-                        </span>
-                        <h3 className="font-extrabold text-xs text-slate-900 mt-1">{phieu.name}</h3>
-                      </div>
-                      <span className="text-[10px] font-bold font-mono text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-xl">
-                        {subsInGroup.length} bài nộp
-                      </span>
-                    </div>
-
-                    <div className="space-y-3 pt-1">
-                      {phieu.questions.filter(q => q.type === 'semantic').map(q => {
-                        const { avg, count } = getSemanticAvg(q.id, phieu.groupCode);
-                        const avgNum = avg ? parseFloat(avg) : 0;
-                        const percent = (avgNum / 5) * 100;
-                        return (
-                          <div key={q.id} className="space-y-1.5 bg-white p-3 rounded-xl border border-slate-200">
-                            <div className="flex justify-between items-start text-xs gap-3">
-                              <p className="font-bold text-slate-800 leading-snug">{q.text}</p>
-                              <div className="text-right shrink-0">
-                                <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-md ${
-                                  avgNum >= 4 ? 'bg-emerald-100 text-emerald-800' : avgNum >= 3 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                                }`}>
-                                  {avg ? `${avg} / 5` : 'N/A'}
-                                </span>
-                                <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
-                                  ({count} đánh giá)
-                                </span>
-                              </div>
-                            </div>
-                            
-                            {/* Bar Visualizer */}
-                            <div className="flex items-center gap-2 pt-1 text-[10px] font-mono text-slate-400">
-                              <span className="text-slate-500 font-semibold">{q.lowLabel || '1'}</span>
-                              <div className="flex-1 bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full transition-all duration-300 ${
-                                    avgNum >= 4 ? 'bg-emerald-500' : avgNum >= 3 ? 'bg-amber-500' : 'bg-slate-400'
-                                  }`}
-                                  style={{ width: `${percent}%` }}
-                                />
-                              </div>
-                              <span className="text-slate-500 font-semibold">{q.highLabel || '5'}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           {/* Submissions List */}
@@ -309,7 +234,7 @@ export const AdminDashboardV2: React.FC = () => {
                 >
                   Tất cả
                 </button>
-                {SURVEY_GROUPS.map(g => (
+                {V2_PARTICIPANT_GROUPS.map(g => (
                   <button
                     key={g.code}
                     onClick={() => setSelectedV2GroupFilter(g.code)}
@@ -341,18 +266,18 @@ export const AdminDashboardV2: React.FC = () => {
                           {sub.participantCode}
                         </span>
                         <span className="font-extrabold text-slate-900">
-                          {sub.fullName || '(Ẩn danh)'}
+                          {sub.profile.fullName || '(Ẩn danh)'}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           · {sub.phieuId}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-semibold">
-                        {sub.titleUnit || 'Chưa cung cấp chức vụ'} · {sub.yearsExp || 'N/A kinh nghiệm'}
+                        {sub.profile.titleUnit || 'Chưa cung cấp chức vụ'} · {sub.profile.yearsExp || 'N/A kinh nghiệm'}
                       </p>
                       <div className="flex flex-wrap gap-2 pt-0.5">
                         <span className="text-[9px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
-                          {Object.keys(sub.semanticAnswers || {}).length} câu đánh giá
+                          {Object.keys(sub.answers || {}).length} câu đã trả lời
                         </span>
                         {Object.keys(sub.interviewAnswers || {}).length > 0 && (
                           <span className="text-[9px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded">
@@ -404,11 +329,11 @@ export const AdminDashboardV2: React.FC = () => {
                   </span>
                 </div>
                 <div className="space-y-2 text-xs">
-                  {SURVEY_GROUPS.map(g => {
-                    const c = v1Subs.filter(s => s.participant.groupCode === g.code).length;
+                  {V2_PARTICIPANT_GROUPS.map(g => {
+                    const c = v1Subs.filter(s => s.participant.groupCode === g.code || s.participant.groupCode.replace('QT-LĐ','QT-LD').replace('CĐ-TH','CD-TH').replace('KG-ĐT','KG-DT') === g.code).length;
                     return (
                       <div key={g.code} className="flex justify-between font-semibold text-slate-700">
-                        <span>{g.code} - {g.name}</span>
+                        <span>{g.code} - {g.shortName}</span>
                         <span className="font-mono font-bold text-slate-900">{c}</span>
                       </div>
                     );
@@ -425,11 +350,11 @@ export const AdminDashboardV2: React.FC = () => {
                   </span>
                 </div>
                 <div className="space-y-2 text-xs">
-                  {SURVEY_GROUPS.map(g => {
+                  {V2_PARTICIPANT_GROUPS.map(g => {
                     const c = v2Subs.filter(s => s.groupCode === g.code).length;
                     return (
                       <div key={g.code} className="flex justify-between font-semibold text-slate-700">
-                        <span>{g.code} - {g.name}</span>
+                        <span>{g.code} - {g.shortName}</span>
                         <span className="font-mono font-bold text-slate-900">{c}</span>
                       </div>
                     );
@@ -465,45 +390,57 @@ export const AdminDashboardV2: React.FC = () => {
               <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
                 <h4 className="font-black text-slate-900 border-b border-slate-100 pb-2">Thông tin người đánh giá</h4>
                 <div className="grid grid-cols-2 gap-2 text-slate-700 leading-relaxed font-semibold">
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Họ tên:</span> {selectedV2Sub.fullName || '(Ẩn danh)'}</div>
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Chức vụ / Học hàm:</span> {selectedV2Sub.titleUnit || 'N/A'}</div>
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Chuyên môn:</span> {selectedV2Sub.speciality || 'N/A'}</div>
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Kinh nghiệm:</span> {selectedV2Sub.yearsExp || 'N/A'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Họ tên / Chức danh:</span> {selectedV2Sub.profile.fullName || '(Ẩn danh)'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Đơn vị:</span> {selectedV2Sub.profile.titleUnit || 'N/A'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Chuyên môn / Vai trò:</span> {selectedV2Sub.profile.speciality || 'N/A'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Kinh nghiệm:</span> {selectedV2Sub.profile.yearsExp || 'N/A'}</div>
+                  {selectedV2Sub.maDot1 && (
+                    <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Mã đợt 1:</span> {selectedV2Sub.maDot1}</div>
+                  )}
                 </div>
               </div>
 
-              {/* Semantic Answers */}
+              {/* Answers */}
               <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
-                <h4 className="font-black text-slate-900 border-b border-slate-100 pb-2">Đánh giá tiêu chí</h4>
+                <h4 className="font-black text-slate-900 border-b border-slate-100 pb-2">Nội dung trả lời</h4>
                 <div className="space-y-3">
-                  {Object.entries(selectedV2Sub.semanticAnswers).map(([qId, ans]) => (
-                    <div key={qId} className="space-y-1 border-b border-slate-50 pb-2.5 last:border-0">
-                      <div className="flex justify-between items-center">
-                        <span className="font-mono font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[10px]">
-                          {qId}
-                        </span>
-                        <span className="font-black text-slate-900">
-                          {ans.value === null ? 'Không đủ cơ sở' : `${ans.value} / 5`}
-                        </span>
+                  {Object.entries(selectedV2Sub.answers)
+                    .filter(([k]) => k !== '_notes')
+                    .map(([qId, val]) => (
+                      <div key={qId} className="space-y-1 border-b border-slate-50 pb-2.5 last:border-0">
+                        <div className="flex justify-between items-center">
+                          <span className="font-mono font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[10px]">
+                            {qId}
+                          </span>
+                          <span className="font-black text-slate-900">
+                            {Array.isArray(val)
+                              ? val.join(', ')
+                              : val === 'nota'
+                              ? 'Không đủ cơ sở đánh giá'
+                              : typeof val === 'number'
+                              ? `${val} / 5`
+                              : String(val)}
+                          </span>
+                        </div>
+                        {selectedV2Sub.notes && selectedV2Sub.notes[qId] && (
+                          <p className="text-slate-600 italic bg-slate-50 p-2 rounded-lg border border-slate-150">
+                            &ldquo;{selectedV2Sub.notes[qId]}&rdquo;
+                          </p>
+                        )}
                       </div>
-                      {ans.note && (
-                        <p className="text-slate-600 italic bg-slate-50 p-2 rounded-lg border border-slate-150">
-                          &ldquo;{ans.note}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
               {/* Open Answers */}
               {Object.keys(selectedV2Sub.openAnswers || {}).length > 0 && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
-                  <h4 className="font-black text-slate-900 border-b border-slate-100 pb-2">Câu hỏi mở</h4>
+                  <h4 className="font-black text-slate-900 border-b border-slate-100 pb-2">Ý kiến mở</h4>
                   {Object.entries(selectedV2Sub.openAnswers).map(([k, text]) => (
                     <div key={k} className="space-y-1">
+                      <span className="font-mono font-bold text-slate-400 text-[10px]">{k}</span>
                       <p className="text-slate-700 font-semibold bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed">
-                        {text}
+                        {String(text)}
                       </p>
                     </div>
                   ))}

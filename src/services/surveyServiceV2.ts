@@ -1,196 +1,210 @@
-/*
- * ============================================================
- * SUPABASE V2 — SQL SETUP (run this in your V2 project's SQL Editor)
- * ============================================================
- *
- * TABLE: lan_su_rong_v2_submissions
- * Storage buckets needed:
- *   - brand_identity_images  (public)
- *   - lan_su_rong_v2_audios  (public)
- *
- * CREATE TABLE IF NOT EXISTS lan_su_rong_v2_submissions (
- *   id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
- *   participant_code       text UNIQUE NOT NULL,
- *   group_code             text NOT NULL,
- *   phieu_id               text NOT NULL,
- *   full_name              text,
- *   title_unit             text,
- *   speciality             text,
- *   years_exp              text,
- *   has_participated_before boolean,
- *   independence_confirmed boolean DEFAULT false,
- *   consent_agreed         boolean DEFAULT false,
- *   consent_record         boolean,
- *   semantic_answers       jsonb DEFAULT '{}',
- *   open_answers           jsonb DEFAULT '{}',
- *   interview_answers      jsonb DEFAULT '{}',
- *   recognition_answers    jsonb DEFAULT '{}',
- *   submitted_at           timestamptz DEFAULT now()
- * );
- * ALTER TABLE lan_su_rong_v2_submissions ENABLE ROW LEVEL SECURITY;
- * CREATE POLICY "Allow anon insert" ON lan_su_rong_v2_submissions FOR INSERT TO anon WITH CHECK (true);
- * CREATE POLICY "Allow anon select" ON lan_su_rong_v2_submissions FOR SELECT TO anon USING (true);
- * CREATE POLICY "Allow anon update" ON lan_su_rong_v2_submissions FOR UPDATE TO anon USING (true);
- *
- * ============================================================
- */
-
 import { supabaseV2, isSupabaseV2Configured } from './supabaseClient';
 
 // ==========================================
-// TYPE DEFINITIONS
+// SQL SETUP INSTRUCTIONS FOR SUPABASE V2
 // ==========================================
+/*
+CREATE TABLE IF NOT EXISTS lan_su_rong_v2_submissions (
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_code       text UNIQUE NOT NULL,
+  group_code             text NOT NULL,
+  phieu_id               text NOT NULL,
+  dot                    text DEFAULT 'Kiem_chung',
+  ma_dot_1               text,
+  full_name              text,
+  title_unit             text,
+  speciality             text,
+  years_exp              text,
+  has_participated_before boolean,
+  has_seen_new_logo      boolean,
+  has_seen_hue_lion      text,
+  independence_confirmed boolean DEFAULT false,
+  consent_agreed         boolean DEFAULT false,
+  consent_record         boolean,
+  answers                jsonb DEFAULT '{}',
+  open_answers           jsonb DEFAULT '{}',
+  interview_answers      jsonb DEFAULT '{}',
+  submitted_at           timestamptz DEFAULT now()
+);
 
-export interface V2SemanticAnswer {
-  value: number | null; // 1-5, or null = "Không đủ cơ sở đánh giá"
-  note: string;
-}
+ALTER TABLE lan_su_rong_v2_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anon insert" ON lan_su_rong_v2_submissions FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Allow anon select" ON lan_su_rong_v2_submissions FOR SELECT TO anon USING (true);
+CREATE POLICY "Allow anon update" ON lan_su_rong_v2_submissions FOR UPDATE TO anon USING (true);
 
-export interface V2Submission {
+-- BUCKET POLICIES FOR brand_identity_images & lan_su_rong_v2_audios:
+CREATE POLICY "Allow anon upload brand images" ON storage.objects FOR INSERT TO anon WITH CHECK (bucket_id = 'brand_identity_images');
+CREATE POLICY "Allow anon select brand images" ON storage.objects FOR SELECT TO anon USING (bucket_id = 'brand_identity_images');
+CREATE POLICY "Allow anon delete brand images" ON storage.objects FOR DELETE TO anon USING (bucket_id = 'brand_identity_images');
+CREATE POLICY "Allow anon upload audios" ON storage.objects FOR INSERT TO anon WITH CHECK (bucket_id = 'lan_su_rong_v2_audios');
+CREATE POLICY "Allow anon select audios" ON storage.objects FOR SELECT TO anon USING (bucket_id = 'lan_su_rong_v2_audios');
+*/
+
+export interface V2SubmissionRecord {
   id: string;
-  participantCode: string;
+  participantCode: string; // e.g. KC-CG-MT-01
   groupCode: string;
   phieuId: string;
-  fullName?: string;
-  titleUnit?: string;
-  speciality?: string;
-  yearsExp?: string;
-  hasParticipatedBefore?: boolean;
-  independenceConfirmed: boolean;
+  dot: string; // 'Kiem_chung'
+  maDot1?: string;
+  profile: {
+    fullName?: string;
+    titleUnit?: string;
+    speciality?: string;
+    yearsExp?: string;
+    hasParticipatedBefore?: boolean;
+    hasSeenNewLogo?: boolean;
+    hasSeenHueLion?: string;
+    independenceConfirmed?: boolean;
+    frequencyLSR?: string;
+  };
   consentAgreed: boolean;
   consentRecord: boolean;
-  semanticAnswers: Record<string, V2SemanticAnswer>;    // D1, D2... → {value, note}
-  openAnswers: Record<string, string>;                   // Part C open text
+  answers: Record<string, any>; // maps question IDs (D1, D2, N1, N2, NB1, etc.) to values
+  notes: Record<string, string>; // maps question IDs to notes
+  openAnswers: Record<string, string>; // Part C/D/E open questions
   interviewAnswers: Record<string, { text: string; audioUrl: string | null }>;
-  recognitionAnswers?: Record<string, string>;           // Phiếu 5 recognition choices
   submittedAt: string;
 }
 
-// ==========================================
-// LOCAL STORAGE KEYS (fallback)
-// ==========================================
 const LS_KEY_V2 = 'lan_su_rong_v2_submissions';
 const LS_COUNTERS_V2 = 'lan_su_rong_v2_counters';
 
 const INITIAL_COUNTERS: Record<string, number> = {
   'CG-MT': 0,
   'CG-TK': 0,
-  'QT-LĐ': 0,
-  'CĐ-TH': 0,
-  'KG-ĐT': 0,
+  'QT-LD': 0,
+  'CD-TH': 0,
+  'KG-DT': 0,
 };
-
-// ==========================================
-// V2 SURVEY SERVICE
-// ==========================================
 
 export class BrandSurveyV2Service {
 
-  // ---- Participant Code ----
+  // Generates code with prefix KC-, formatted with 2 digits: KC-CG-MT-01
   static async getNextParticipantCode(groupCode: string): Promise<string> {
+    const cleanGroup = groupCode.replace('QT-LĐ', 'QT-LD').replace('CĐ-TH', 'CD-TH').replace('KG-ĐT', 'KG-DT');
+    
     if (isSupabaseV2Configured()) {
       try {
         const { count, error } = await supabaseV2
           .from('lan_su_rong_v2_submissions')
           .select('*', { count: 'exact', head: true })
-          .eq('group_code', groupCode);
+          .eq('group_code', cleanGroup);
         if (error) throw error;
-        return `${groupCode}-V2-${(count || 0) + 1}`;
+        const nextNum = (count || 0) + 1;
+        const padded = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+        return `KC-${cleanGroup}-${padded}`;
       } catch (e) {
-        console.error('[V2] Count error, fallback local:', e);
+        console.error('[V2] Count error, falling back to local counter:', e);
       }
     }
+
     const raw = localStorage.getItem(LS_COUNTERS_V2);
     const counters: Record<string, number> = raw ? JSON.parse(raw) : { ...INITIAL_COUNTERS };
-    return `${groupCode}-V2-${(counters[groupCode] || 0) + 1}`;
+    const nextNum = (counters[cleanGroup] || 0) + 1;
+    const padded = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+    return `KC-${cleanGroup}-${padded}`;
   }
 
-  // ---- Save Submission ----
-  static async saveSubmission(submission: V2Submission): Promise<void> {
+  // Save submission
+  static async saveSubmission(submission: V2SubmissionRecord): Promise<void> {
     if (isSupabaseV2Configured()) {
       try {
         const row = {
           participant_code: submission.participantCode,
           group_code: submission.groupCode,
           phieu_id: submission.phieuId,
-          full_name: submission.fullName || null,
-          title_unit: submission.titleUnit || null,
-          speciality: submission.speciality || null,
-          years_exp: submission.yearsExp || null,
-          has_participated_before: submission.hasParticipatedBefore ?? null,
-          independence_confirmed: submission.independenceConfirmed,
+          dot: 'Kiem_chung',
+          ma_dot_1: submission.maDot1 || null,
+          full_name: submission.profile.fullName || null,
+          title_unit: submission.profile.titleUnit || null,
+          speciality: submission.profile.speciality || null,
+          years_exp: submission.profile.yearsExp || null,
+          has_participated_before: submission.profile.hasParticipatedBefore ?? null,
+          has_seen_new_logo: submission.profile.hasSeenNewLogo ?? null,
+          has_seen_hue_lion: submission.profile.hasSeenHueLion || null,
+          independence_confirmed: submission.profile.independenceConfirmed ?? false,
           consent_agreed: submission.consentAgreed,
           consent_record: submission.consentRecord,
-          semantic_answers: submission.semanticAnswers,
+          answers: { ...submission.answers, _notes: submission.notes },
           open_answers: submission.openAnswers,
           interview_answers: submission.interviewAnswers,
-          recognition_answers: submission.recognitionAnswers || {},
           submitted_at: new Date().toISOString(),
         };
+
         const { error } = await supabaseV2
           .from('lan_su_rong_v2_submissions')
           .upsert(row, { onConflict: 'participant_code' });
+        
         if (error) throw error;
-        console.log('[V2] Submission saved to Supabase V2.');
+        console.log('[V2] Saved to Supabase V2.');
         return;
       } catch (e) {
-        console.error('[V2] Supabase insert error, saving locally:', e);
+        console.error('[V2] Error saving to Supabase V2, falling back to LocalStorage:', e);
       }
     }
 
-    // Local Storage fallback
+    // LocalStorage fallback
     const raw = localStorage.getItem(LS_KEY_V2);
-    const submissions: V2Submission[] = raw ? JSON.parse(raw) : [];
-    const idx = submissions.findIndex(s => s.participantCode === submission.participantCode);
-    if (idx >= 0) submissions[idx] = submission;
-    else submissions.push(submission);
-    localStorage.setItem(LS_KEY_V2, JSON.stringify(submissions));
+    const list: V2SubmissionRecord[] = raw ? JSON.parse(raw) : [];
+    const idx = list.findIndex(s => s.participantCode === submission.participantCode);
+    if (idx >= 0) list[idx] = submission;
+    else list.push(submission);
+    localStorage.setItem(LS_KEY_V2, JSON.stringify(list));
 
-    // Increment counter
+    // Update local counter
     const rawC = localStorage.getItem(LS_COUNTERS_V2);
     const counters: Record<string, number> = rawC ? JSON.parse(rawC) : { ...INITIAL_COUNTERS };
-    const num = parseInt(submission.participantCode.split('-V2-').pop() || '1', 10);
+    const num = parseInt(submission.participantCode.split('-').pop() || '1', 10);
     counters[submission.groupCode] = Math.max(counters[submission.groupCode] || 0, num);
     localStorage.setItem(LS_COUNTERS_V2, JSON.stringify(counters));
   }
 
-  // ---- Get All Submissions ----
-  static async getSubmissions(): Promise<V2Submission[]> {
+  // Get all submissions
+  static async getSubmissions(): Promise<V2SubmissionRecord[]> {
     if (isSupabaseV2Configured()) {
       try {
         const { data, error } = await supabaseV2
           .from('lan_su_rong_v2_submissions')
           .select('*')
           .order('submitted_at', { ascending: true });
+        
         if (error) throw error;
         return (data || []).map(row => ({
           id: row.id,
           participantCode: row.participant_code,
           groupCode: row.group_code,
           phieuId: row.phieu_id,
-          fullName: row.full_name || undefined,
-          titleUnit: row.title_unit || undefined,
-          speciality: row.speciality || undefined,
-          yearsExp: row.years_exp || undefined,
-          hasParticipatedBefore: row.has_participated_before ?? undefined,
-          independenceConfirmed: row.independence_confirmed,
+          dot: row.dot || 'Kiem_chung',
+          maDot1: row.ma_dot_1 || undefined,
+          profile: {
+            fullName: row.full_name || undefined,
+            titleUnit: row.title_unit || undefined,
+            speciality: row.speciality || undefined,
+            yearsExp: row.years_exp || undefined,
+            hasParticipatedBefore: row.has_participated_before ?? undefined,
+            hasSeenNewLogo: row.has_seen_new_logo ?? undefined,
+            hasSeenHueLion: row.has_seen_hue_lion || undefined,
+            independenceConfirmed: row.independence_confirmed ?? false,
+          },
           consentAgreed: row.consent_agreed,
           consentRecord: row.consent_record,
-          semanticAnswers: row.semantic_answers || {},
+          answers: row.answers || {},
+          notes: (row.answers && row.answers._notes) || {},
           openAnswers: row.open_answers || {},
           interviewAnswers: row.interview_answers || {},
-          recognitionAnswers: row.recognition_answers || {},
           submittedAt: new Date(row.submitted_at).toLocaleString('vi-VN'),
         }));
       } catch (e) {
         console.error('[V2] Fetch error, loading local:', e);
       }
     }
+
     const raw = localStorage.getItem(LS_KEY_V2);
     return raw ? JSON.parse(raw) : [];
   }
 
-  // ---- Image URL from V2 Storage ----
+  // Smart image URL lookup
   static getImageUrl(fileName: string): string {
     if (!isSupabaseV2Configured()) return '';
     const { data } = supabaseV2.storage
@@ -199,10 +213,10 @@ export class BrandSurveyV2Service {
     return data.publicUrl;
   }
 
-  // ---- Upload Image (admin) ----
+  // Upload image to Supabase V2 storage
   static async uploadImage(fileName: string, file: File): Promise<{ url: string | null; error: string | null }> {
     if (!isSupabaseV2Configured()) {
-      return { url: null, error: 'Supabase V2 chưa được cấu hình.' };
+      return { url: null, error: 'Database Supabase V2 chưa được cấu hình trong .env.' };
     }
     try {
       const cleanName = fileName.replace(/[^a-zA-Z0-9_.\-]/g, '_');
@@ -219,11 +233,12 @@ export class BrandSurveyV2Service {
         .getPublicUrl(data.path);
       return { url: urlData.publicUrl, error: null };
     } catch (e: any) {
-      return { url: null, error: e.message || 'Upload thất bại.' };
+      console.error('[V2] Upload error:', e);
+      return { url: null, error: e.message || 'Lỗi khi tải ảnh lên.' };
     }
   }
 
-  // ---- List Images in Storage ----
+  // List images
   static async listImages(): Promise<{ name: string; url: string }[]> {
     if (!isSupabaseV2Configured()) return [];
     try {
@@ -241,7 +256,7 @@ export class BrandSurveyV2Service {
     }
   }
 
-  // ---- Delete Image ----
+  // Delete image
   static async deleteImage(fileName: string): Promise<boolean> {
     if (!isSupabaseV2Configured()) return false;
     try {
@@ -254,13 +269,13 @@ export class BrandSurveyV2Service {
     }
   }
 
-  // ---- Reset (admin dev tool) ----
+  // Reset local submissions (dev)
   static resetLocalSubmissions(): void {
     localStorage.removeItem(LS_KEY_V2);
     localStorage.removeItem(LS_COUNTERS_V2);
   }
 
-  // ---- Upload Audio (interview recording) ----
+  // Upload interview audio
   static async uploadAudio(fileName: string, audioBlob: Blob): Promise<string | null> {
     if (!isSupabaseV2Configured()) return null;
     try {

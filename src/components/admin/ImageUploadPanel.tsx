@@ -6,8 +6,11 @@ import {
 } from 'lucide-react';
 
 const EXPECTED_FILENAMES = [
-  'H1a', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7',
-  'H8', 'H9', 'H10', 'H11', 'SO_SANH', 'REC_TEST_1', 'REC_TEST_2',
+  'H1a', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8', 'H9', 'H10', 'H11',
+  'LOGO-HH', 'TL-a', 'TL-b', 'TL-c', 'TL-d',
+  'SO-SANH', 'NB-A', 'NB-SET',
+  'NB1-16', 'NB1-24', 'NB1-32',
+  'NB2-30', 'NB2-20', 'NB2-10',
 ];
 
 export const ImageUploadPanel: React.FC = () => {
@@ -70,7 +73,11 @@ export const ImageUploadPanel: React.FC = () => {
     setUploadError(null);
     setUploadSuccess(null);
     try {
-      await BrandSurveyV2Service.uploadImage(customFileName.trim(), selectedFile);
+      const result = await BrandSurveyV2Service.uploadImage(customFileName.trim(), selectedFile);
+      if (result.error) {
+        setUploadError(`Lỗi upload: ${result.error}`);
+        return;
+      }
       setUploadSuccess(`✓ Đã upload "${customFileName.trim()}" thành công!`);
       setSelectedFile(null);
       setCustomFileName('');
