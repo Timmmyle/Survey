@@ -650,11 +650,11 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="font-bold text-slate-800">
+                <div className="space-y-2">
+                  <label className="block font-bold text-slate-800 mb-2.5">
                     Lĩnh vực chuyên môn chính: <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 pt-1">
                     {(selectedGroupCode === 'CG-MT'
                       ? ['Lịch sử mỹ thuật, mỹ thuật học', 'Di sản, bảo tồn, bảo tàng', 'Văn hóa học', 'Khác']
                       : ['Thiết kế đồ họa, nhận diện thương hiệu', 'Giảng dạy thiết kế', 'Khác']
@@ -676,7 +676,7 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                         placeholder="Ghi rõ lĩnh vực..."
                         value={specialityOther}
                         onChange={(e) => setSpecialityOther(e.target.value)}
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                        className="w-full px-3.5 py-2 mt-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
                       />
                     )}
                   </div>
@@ -764,11 +764,11 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
             {/* FORM CHO PHIẾU 3 (QT-LD) & PHIẾU 4 (CD-TH) */}
             {(selectedGroupCode === 'QT-LD' || selectedGroupCode === 'CD-TH') && (
               <div className="space-y-4 text-xs">
-                <div className="space-y-1.5">
-                  <label className="font-bold text-slate-800">
+                <div className="space-y-2">
+                  <label className="block font-bold text-slate-800 mb-2.5">
                     Chức danh / vai trò: <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 pt-1">
                     {(selectedGroupCode === 'QT-LD'
                       ? ['Lãnh đạo Liên đoàn', 'Cán bộ điều hành', 'Khác']
                       : ['Võ sư / huấn luyện viên', 'Trưởng đoàn', 'Vận động viên', 'Khác']
@@ -859,11 +859,11 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                   </div>
                 </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <label className="font-bold text-slate-800">
+                <div className="space-y-2 pt-1">
+                  <label className="block font-bold text-slate-800 mb-2.5">
                     Trước phiếu này, Anh/Chị đã từng thấy hình lân trong kiến trúc cung đình Huế chưa? <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 pt-1">
                     {['Đã thấy tận nơi', 'Đã thấy qua ảnh, phim', 'Chưa thấy'].map((opt) => (
                       <label key={opt} className="flex items-center gap-2.5 font-medium cursor-pointer">
                         <input
@@ -885,10 +885,10 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
             {selectedGroupCode === 'KG-DT' && (
               <div className="space-y-4 text-xs">
                 <div className="space-y-2">
-                  <label className="font-bold text-slate-800">
+                  <label className="block font-bold text-slate-800 mb-2.5">
                     Anh/Chị đã từng xem các phương án biểu trưng mới của Liên đoàn Lân Sư Rồng Việt Nam chưa? <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 pt-1">
                     <label className="flex items-center gap-2 cursor-pointer font-medium">
                       <input
                         type="radio"
@@ -913,10 +913,10 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="font-bold text-slate-800">
+                  <label className="block font-bold text-slate-800 mb-2.5">
                     Anh/Chị có thường xem hoặc theo dõi hoạt động lân sư rồng không? <span className="text-red-500">*</span>
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 pt-1">
                     {['Thường xuyên', 'Thỉnh thoảng', 'Hiếm khi', 'Chưa bao giờ'].map((freq) => (
                       <label key={freq} className="flex items-center gap-2.5 font-medium cursor-pointer">
                         <input
