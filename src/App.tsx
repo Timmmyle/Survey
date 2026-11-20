@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { BrandSurveyRespondent } from './components/survey/BrandSurveyRespondent';
 import { AdminDashboard } from './components/survey/AdminDashboard';
-import { Clipboard, BarChart3, HelpCircle } from 'lucide-react';
+import { BrandSurveyV2Respondent } from './components/survey/BrandSurveyV2Respondent';
+import { AdminDashboardV2 } from './components/survey/AdminDashboardV2';
+import { Clipboard, BarChart3, HelpCircle, Eye } from 'lucide-react';
+
+type Route = 'survey' | 'survey-v2' | 'admin';
 
 interface ParsedRoute {
-  route: 'survey' | 'admin';
+  route: Route;
 }
 
 function App() {
@@ -12,15 +16,19 @@ function App() {
   const parseRoute = (): ParsedRoute => {
     const path = window.location.pathname;
     const hash = window.location.hash;
+    const search = window.location.search;
 
     if (hash === '#/admin' || path === '/admin' || path.endsWith('/admin')) {
       return { route: 'admin' };
+    }
+    if (hash === '#/survey-v2' || new URLSearchParams(search).get('round') === '2') {
+      return { route: 'survey-v2' };
     }
     return { route: 'survey' };
   };
 
   const initialRoute = parseRoute();
-  const [currentRoute, setCurrentRoute] = useState<'survey' | 'admin'>(initialRoute.route);
+  const [currentRoute, setCurrentRoute] = useState<Route>(initialRoute.route);
 
   // Listen to hash and browser back/forward buttons
   useEffect(() => {
@@ -36,8 +44,14 @@ function App() {
     };
   }, []);
 
-  const navigateToRoute = (newRoute: 'survey' | 'admin') => {
-    window.location.hash = newRoute === 'admin' ? '#/admin' : '#/survey';
+  const navigateToRoute = (newRoute: Route) => {
+    if (newRoute === 'admin') {
+      window.location.hash = '#/admin';
+    } else if (newRoute === 'survey-v2') {
+      window.location.hash = '#/survey-v2';
+    } else {
+      window.location.hash = '#/survey';
+    }
     setCurrentRoute(newRoute);
   };
 
@@ -78,9 +92,21 @@ function App() {
               </button>
               
               <button
+                onClick={() => navigateToRoute('survey-v2')}
+                className={`px-3 py-1.5 text-xs font-black rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 select-none ${
+                  (currentRoute as string) === 'survey-v2'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Vòng 2 — Kiểm chứng
+              </button>
+
+              <button
                 onClick={() => navigateToRoute('admin')}
                 className={`px-3 py-1.5 text-xs font-black rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 select-none ${
-                  currentRoute === 'admin'
+                  (currentRoute as string) === 'admin'
                     ? 'bg-amber-500 text-slate-950 shadow-xs'
                     : 'text-slate-400 hover:text-white'
                 }`}
@@ -97,14 +123,14 @@ function App() {
       {/* Main page content area */}
       <main className="flex-1 w-full mx-auto">
         {currentRoute === 'survey' && (
-          <BrandSurveyRespondent
-            onBackToAdmin={() => navigateToRoute('admin')}
-          />
+          <BrandSurveyRespondent onBackToAdmin={() => navigateToRoute('admin')} />
         )}
-        
+        {currentRoute === 'survey-v2' && (
+          <BrandSurveyV2Respondent onBackToAdmin={() => navigateToRoute('admin')} />
+        )}
         {currentRoute === 'admin' && (
           <div className="container mx-auto px-4 py-8">
-            <AdminDashboard />
+            <AdminDashboardV2 />
           </div>
         )}
       </main>
