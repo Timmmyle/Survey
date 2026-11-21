@@ -248,7 +248,7 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
           </span>
         </div>
 
-        {/* Nút Không đủ cơ sở đánh giá */}
+        {/* Nút Không đánh giá được */}
         {allowNota && (
           <div className="flex justify-end">
             <button
@@ -260,7 +260,7 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800'
               }`}
             >
-              Không đủ cơ sở đánh giá
+              Không đánh giá được
             </button>
           </div>
         )}
@@ -553,7 +553,7 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
         )}
 
         {/* ======================================================== */}
-        {/* MÀN 4. HƯỚNG DẪN TRẢ LỜI                                 */}
+        {/* MÀN 4. HƯỚNG DẪN TRẢ LỜI (hiển thị ở đầu mỗi phiếu)       */}
         {/* ======================================================== */}
         {currentScreen === 'man-4' && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-in fade-in duration-200">
@@ -566,14 +566,15 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                   Mã: {participantCode}
                 </span>
               </div>
-              <h2 className="text-base font-black text-slate-950 uppercase tracking-tight mt-2">
-                HƯỚNG DẪN TRẢ LỜI
+              <h2 className="text-base font-black text-slate-950 uppercase tracking-tight mt-2 flex flex-wrap items-baseline gap-2">
+                <span>HƯỚNG DẪN TRẢ LỜI</span>
+                <span className="text-xs font-semibold text-slate-500 lowercase first-letter:uppercase tracking-normal">(hiển thị ở đầu mỗi phiếu)</span>
               </h2>
             </div>
 
             <div className="space-y-4 text-xs">
               <p className="font-medium text-slate-700 leading-relaxed">
-                Mỗi câu đánh giá dùng thang 1 - 5. Hai đầu thang được mô tả riêng trong từng câu; các mức 2 - 4 nằm giữa hai mô tả đó.
+                Mỗi câu có 5 mức: 1 là thấp nhất, 5 là cao nhất.
               </p>
 
               {/* Table thang 1-5 */}
@@ -581,25 +582,41 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                 <table className="w-full text-xs">
                   <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-black">
                     <tr>
-                      <th className="py-2 px-3 text-left w-16">Mức</th>
-                      <th className="py-2 px-3 text-left">Ý nghĩa</th>
+                      <th className="py-2.5 px-3 text-left w-36 sm:w-44">Mức</th>
+                      <th className="py-2.5 px-3 text-left">Nghĩa là</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {V2_THESIS_METADATA.instructionsHtml.map((row, idx) => (
-                      <tr key={idx} className={row.level === 'na' ? 'bg-amber-50/50' : ''}>
-                        <td className="py-2 px-3 font-mono font-bold text-slate-900">
-                          {row.level === 'na' ? 'N/A' : row.level}
-                        </td>
-                        <td className="py-2 px-3">{row.text}</td>
-                      </tr>
-                    ))}
+                    <tr>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">1</td>
+                      <td className="py-2.5 px-3">Rất thấp</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">2</td>
+                      <td className="py-2.5 px-3">Thấp</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">3</td>
+                      <td className="py-2.5 px-3">Trung bình, hoặc chưa nghiêng về bên nào</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">4</td>
+                      <td className="py-2.5 px-3">Khá</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">5</td>
+                      <td className="py-2.5 px-3">Rất cao</td>
+                    </tr>
+                    <tr className="bg-amber-50/40">
+                      <td className="py-2.5 px-3 font-bold text-slate-900 leading-snug">Không đánh giá được</td>
+                      <td className="py-2.5 px-3">Câu này ngoài chuyên môn của Anh/Chị, hoặc hình chưa đủ để nhận xét.</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] text-slate-600 font-semibold leading-relaxed">
-                {V2_THESIS_METADATA.instructionNote}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] text-slate-600 font-semibold leading-relaxed text-justify">
+                Anh/Chị có thể ghi thêm ý kiến vào ô Ghi chú ở bất kỳ mức nào (không bắt buộc). Bấm vào hình để xem lớn hơn, trừ phần phép thử nhận biết. Sau khi bắt đầu xem hình, không thể quay lại phần trước.
               </div>
             </div>
 

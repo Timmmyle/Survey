@@ -80,15 +80,16 @@ export const V2_THESIS_METADATA = {
     "Phỏng vấn ngắn sau phiếu, nếu Quý Ông/Bà, Anh/Chị đồng ý.",
     "Việc tham gia là tự nguyện; người tham gia có quyền dừng bất cứ lúc nào. Thông tin thu thập chỉ phục vụ mục đích học thuật, được trình bày bằng mã người tham gia và không công bố danh tính."
   ],
+  instructionIntro: "Mỗi câu có 5 mức: 1 là thấp nhất, 5 là cao nhất.",
   instructionsHtml: [
-    { level: 1, text: "Gần với mô tả ở đầu thấp của câu" },
-    { level: 2, text: "Nghiêng về đầu thấp" },
-    { level: 3, text: "Ở giữa" },
-    { level: 4, text: "Nghiêng về đầu cao" },
-    { level: 5, text: "Gần với mô tả ở đầu cao của câu" },
-    { level: 'na', text: "Không đủ cơ sở đánh giá: Câu nằm ngoài chuyên môn hoặc hình chưa đủ thông tin; lượt này không tính vào kết quả" },
+    { level: "1", text: "Rất thấp" },
+    { level: "2", text: "Thấp" },
+    { level: "3", text: "Trung bình, hoặc chưa nghiêng về bên nào" },
+    { level: "4", text: "Khá" },
+    { level: "5", text: "Rất cao" },
+    { level: "Không đánh giá được", text: "Câu này ngoài chuyên môn của Anh/Chị, hoặc hình chưa đủ để nhận xét." },
   ],
-  instructionNote: "Mỗi câu có ô ghi chú dùng được cho mọi mức điểm. Hình liên quan hiển thị ngay trên câu hỏi và có thể bấm để phóng to, trừ hình của phép thử nhận biết. Từ khi bắt đầu xem bộ hình, phiếu không cho quay lại phần trước."
+  instructionNote: "Anh/Chị có thể ghi thêm ý kiến vào ô Ghi chú ở bất kỳ mức nào (không bắt buộc). Bấm vào hình để xem lớn hơn, trừ phần phép thử nhận biết. Sau khi bắt đầu xem hình, không thể quay lại phần trước."
 };
 
 // ---------------------------------------------------------------------------
