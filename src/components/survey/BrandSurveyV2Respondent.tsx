@@ -6,6 +6,7 @@ import {
   COLOR_OPTIONS_N6,
   DOCUMENTATION_PHOTOS_N2,
   ALL_VIEWER_IMAGES_H1_H11,
+  V2_D_QUESTIONS_LEVELS,
 } from '../../data/surveyData_v2';
 import {
   ShieldCheck, Check, AlertCircle, HelpCircle, Eye,
@@ -207,72 +208,87 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
     );
   };
 
-  // Render 1-5 Semantic Differential Scale
+  // Render 1-5 Semantic Scale with full 5-level descriptive options
   const renderSemanticScale = (
     questionId: string,
-    lowLabel: string,
-    highLabel: string,
+    lowLabel?: string,
+    highLabel?: string,
     allowNota = true
   ) => {
     const currentVal = answers[questionId];
-    return (
-      <div className="space-y-3 pt-2">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <span className="text-xs font-bold text-slate-600 sm:w-1/3 text-left leading-tight">
-            1. {lowLabel}
-          </span>
+    const levels = V2_D_QUESTIONS_LEVELS[questionId] || [
+      lowLabel || 'Đầu thấp',
+      'Nghiêng về đầu thấp',
+      'Ở giữa',
+      'Nghiêng về đầu cao',
+      highLabel || 'Đầu cao'
+    ];
 
-          {/* 5 Radio Dots */}
-          <div className="flex items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto">
-            {[1, 2, 3, 4, 5].map((val) => {
-              const isSelected = currentVal === val;
-              return (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => handleSetAnswer(questionId, val)}
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full font-mono font-black text-sm transition-all flex items-center justify-center cursor-pointer select-none ${
+    return (
+      <div className="space-y-2.5 pt-2">
+        {/* 5 Levels as clean, clickable option cards */}
+        <div className="space-y-1.5">
+          {levels.map((text, idx) => {
+            const val = idx + 1;
+            const isSelected = currentVal === val;
+            return (
+              <div
+                key={val}
+                onClick={() => handleSetAnswer(questionId, val)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 select-none ${
+                  isSelected
+                    ? 'border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-400'
+                    : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/70'
+                }`}
+              >
+                <span
+                  className={`w-7 h-7 rounded-full font-mono font-bold text-xs flex items-center justify-center shrink-0 transition-colors ${
                     isSelected
-                      ? 'bg-amber-500 text-slate-950 ring-4 ring-amber-200 scale-110 shadow-sm'
-                      : 'bg-white border-2 border-slate-300 text-slate-700 hover:border-amber-400 hover:bg-amber-50'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                      : 'bg-slate-100 text-slate-700'
                   }`}
                 >
                   {val}
-                </button>
-              );
-            })}
-          </div>
-
-          <span className="text-xs font-bold text-slate-600 sm:w-1/3 text-right leading-tight">
-            5. {highLabel}
-          </span>
+                </span>
+                <span
+                  className={`text-xs ${
+                    isSelected ? 'font-bold text-slate-950' : 'font-medium text-slate-700'
+                  }`}
+                >
+                  {val}. {text}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Nút Không đánh giá được */}
         {allowNota && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => handleSetAnswer(questionId, 'nota')}
-              className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
-                currentVal === 'nota'
-                  ? 'bg-slate-800 text-white border-slate-900'
-                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800'
-              }`}
-            >
-              Không đánh giá được
-            </button>
+          <div
+            onClick={() => handleSetAnswer(questionId, 'nota')}
+            className={`p-2.5 px-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-xs select-none ${
+              currentVal === 'nota'
+                ? 'bg-slate-800 text-white border-slate-900 font-bold shadow-xs'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <span className="font-medium">Không đánh giá được</span>
+            {currentVal === 'nota' && (
+              <span className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-white font-bold">
+                Đã chọn
+              </span>
+            )}
           </div>
         )}
 
         {/* Ô ghi chú không bắt buộc */}
-        <div className="space-y-1">
+        <div className="pt-1">
           <input
             type="text"
-            placeholder="Ghi chú (không bắt buộc)..."
+            placeholder="Ghi chú (không bắt buộc): …………………………………………"
             value={notes[questionId] || ''}
             onChange={(e) => handleSetNote(questionId, e.target.value)}
-            className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 text-slate-800 placeholder:text-slate-400"
+            className="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 text-slate-800 placeholder:text-slate-400 shadow-2xs"
           />
         </div>
       </div>
@@ -1144,35 +1160,35 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                   <p className="font-black text-slate-900 text-xs">
                     D1. Cấu trúc và tỷ lệ của biểu trưng chính đạt mức nào?
                   </p>
-                  {renderSemanticScale('D1', 'Rời rạc, mất cân đối', 'Chặt chẽ, cân đối')}
+                  {renderSemanticScale('D1')}
                 </div>
 
                 {/* D2 */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                  <div className="grid grid-cols-4 gap-2">
-                    {renderSurveyImage('H1', 'H1')}
-                    {renderSurveyImage('H8', 'H8')}
-                    {renderSurveyImage('H9', 'H9')}
-                    {renderSurveyImage('H11', 'H11')}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {renderSurveyImage('H1', 'H1 (Hình 3.8)')}
+                    {renderSurveyImage('H8', 'H8. Ứng dụng giải đấu (Hình 3.15)')}
+                    {renderSurveyImage('H9', 'H9. Trang phục (Hình 3.16)')}
+                    {renderSurveyImage('H11', 'H11. Truyền thông (Hình 3.18)')}
                   </div>
                   <p className="font-black text-slate-900 text-xs">
                     D2. Tổng thể bộ nhận diện truyền tải tinh thần thể thao - văn hóa của lân sư rồng ở mức nào?
                   </p>
-                  {renderSemanticScale('D2', 'Không truyền tải được', 'Truyền tải rõ')}
+                  {renderSemanticScale('D2')}
                 </div>
 
                 {/* D9 */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                  <div className="grid grid-cols-4 gap-2">
-                    {renderSurveyImage('H2', 'H2')}
-                    {renderSurveyImage('H3', 'H3')}
-                    {renderSurveyImage('H8', 'H8')}
-                    {renderSurveyImage('H11', 'H11')}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {renderSurveyImage('H2', 'H2. Biến thể và huy hiệu (Hình 3.9)')}
+                    {renderSurveyImage('H3', 'H3. Cỡ thu nhỏ (Hình 3.7)')}
+                    {renderSurveyImage('H8', 'H8. Thẻ đeo (Hình 3.15)')}
+                    {renderSurveyImage('H11', 'H11. Ảnh đại diện (Hình 3.18)')}
                   </div>
                   <p className="font-black text-slate-900 text-xs">
                     D9. Ở cỡ nhỏ (huy hiệu, thẻ đeo, ảnh đại diện mạng xã hội), biểu trưng còn nhận ra được ở mức nào?
                   </p>
-                  {renderSemanticScale('D9', 'Không nhận ra', 'Nhận ra rõ')}
+                  {renderSemanticScale('D9')}
                 </div>
 
                 {/* D10 */}
@@ -1181,39 +1197,52 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
                   <p className="font-black text-slate-900 text-xs">
                     D10. So với biểu trưng của các đoàn, câu lạc bộ và liên đoàn lân sư rồng khác, biểu trưng dễ phân biệt ở mức nào?
                   </p>
-                  {renderSemanticScale('D10', 'Dễ nhầm lẫn', 'Phân biệt rõ')}
+                  {renderSemanticScale('D10')}
                 </div>
 
                 {/* D11 */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                  {renderSurveyImage('H1', 'H1 - H6: Toàn bộ hệ thống cốt lõi')}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {renderSurveyImage('H1', 'H1. Biểu trưng chính (Hình 3.8)')}
+                    {renderSurveyImage('H2', 'H2. Biến thể & huy hiệu (Hình 3.9)')}
+                    {renderSurveyImage('H3', 'H3. Quy chuẩn dựng hình (Hình 3.7, 3.10)')}
+                    {renderSurveyImage('H4', 'H4. Hệ màu (Hình 3.11)')}
+                    {renderSurveyImage('H5', 'H5. Kiểu chữ (Hình 3.12)')}
+                    {renderSurveyImage('H6', 'H6. Họa tiết (Hình 3.13)')}
+                  </div>
                   <p className="font-black text-slate-900 text-xs">
                     D11. Biểu trưng, màu, chữ và họa tiết liên kết thành một hệ thống ở mức nào?
                   </p>
-                  {renderSemanticScale('D11', 'Rời rạc', 'Thống nhất')}
+                  {renderSemanticScale('D11')}
                 </div>
 
                 {/* D12 */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                  {renderSurveyImage('H7', 'H7 - H11: Các nhóm ứng dụng')}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {renderSurveyImage('H7', 'H7. Văn phòng (Hình 3.14)')}
+                    {renderSurveyImage('H8', 'H8. Ứng dụng giải đấu (Hình 3.15)')}
+                    {renderSurveyImage('H9', 'H9. Trang phục (Hình 3.16)')}
+                    {renderSurveyImage('H10', 'H10. Vinh danh (Hình 3.17)')}
+                    {renderSurveyImage('H11', 'H11. Truyền thông (Hình 3.18)')}
+                  </div>
                   <p className="font-black text-slate-900 text-xs">
                     D12. Qua các nhóm ứng dụng (văn phòng, giải đấu, trang phục, truyền thông), nhận diện được giữ nhất quán ở mức nào?
                   </p>
-                  {renderSemanticScale('D12', 'Không nhất quán', 'Nhất quán')}
+                  {renderSemanticScale('D12')}
                 </div>
 
                 {/* D14 */}
                 <div className="space-y-3 pt-4 border-t border-slate-100">
-                  <div className="grid grid-cols-4 gap-2">
-                    {renderSurveyImage('H3', 'H3')}
-                    {renderSurveyImage('H8', 'H8')}
-                    {renderSurveyImage('H9', 'H9')}
-                    {renderSurveyImage('H10', 'H10')}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {renderSurveyImage('H3', 'H3 (Hình 3.7, 3.10)')}
+                    {renderSurveyImage('H8', 'H8 (Hình 3.15)')}
+                    {renderSurveyImage('H9', 'H9 (Hình 3.16)')}
+                    {renderSurveyImage('H10', 'H10 (Hình 3.17)')}
                   </div>
                   <p className="font-black text-slate-900 text-xs">
                     D14. Trước khi gia công (thêu, in, dập nổi), bộ nhận diện cần chỉnh sửa ở mức nào để phù hợp với kỹ thuật và chi phí của Liên đoàn?
                   </p>
-                  {renderSemanticScale('D14', 'Cần làm lại phần lớn', 'Dùng được ngay')}
+                  {renderSemanticScale('D14')}
                 </div>
               </div>
             )}
@@ -1937,28 +1966,30 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
 
                 {/* D8 */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
-                  <div className="grid grid-cols-3 gap-2">
-                    {renderSurveyImage('H1', 'H1')}
-                    {renderSurveyImage('H2', 'H2')}
-                    {renderSurveyImage('H8', 'H8')}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {renderSurveyImage('H1', 'H1 (Hình 3.8)')}
+                    {renderSurveyImage('H2', 'H2. Biến thể (Hình 3.9)')}
+                    {renderSurveyImage('H8', 'H8 (Hình 3.15)')}
+                    {renderSurveyImage('H9', 'H9 (Hình 3.16)')}
+                    {renderSurveyImage('H10', 'H10. Vinh danh (Hình 3.17)')}
                   </div>
                   <p className="font-bold text-slate-900 text-xs">
                     D8. Bộ nhận diện đại diện cho cả ba loại hình lân, sư, rồng của Liên đoàn ở mức nào?
                   </p>
-                  {renderSemanticScale('D8', 'Chỉ đại diện một loại hình', 'Đại diện đủ ba loại hình')}
+                  {renderSemanticScale('D8')}
                 </div>
 
                 {/* D13 */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
                   <div className="grid grid-cols-3 gap-2">
-                    {renderSurveyImage('H3', 'H3')}
-                    {renderSurveyImage('H4', 'H4')}
-                    {renderSurveyImage('H5', 'H5')}
+                    {renderSurveyImage('H3', 'H3. Quy chuẩn (Hình 3.7, 3.10)')}
+                    {renderSurveyImage('H4', 'H4. Hệ màu (Hình 3.11)')}
+                    {renderSurveyImage('H5', 'H5. Kiểu chữ (Hình 3.12)')}
                   </div>
                   <p className="font-bold text-slate-900 text-xs">
                     D13. Dựa vào quy chuẩn trong sổ tay, Liên đoàn và các đơn vị thành viên có thể tự áp dụng bộ nhận diện ở mức nào?
                   </p>
-                  {renderSemanticScale('D13', 'Không thể tự áp dụng', 'Tự áp dụng được ngay')}
+                  {renderSemanticScale('D13')}
                 </div>
 
                 <div className="pt-2">
@@ -2243,52 +2274,54 @@ export const BrandSurveyV2Respondent: React.FC<BrandSurveyV2RespondentProps> = (
 
                 {/* D8 */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
-                  <div className="grid grid-cols-3 gap-2">
-                    {renderSurveyImage('H1', 'H1')}
-                    {renderSurveyImage('H2', 'H2')}
-                    {renderSurveyImage('H8', 'H8')}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {renderSurveyImage('H1', 'H1 (Hình 3.8)')}
+                    {renderSurveyImage('H2', 'H2. Biến thể (Hình 3.9)')}
+                    {renderSurveyImage('H8', 'H8 (Hình 3.15)')}
+                    {renderSurveyImage('H9', 'H9 (Hình 3.16)')}
+                    {renderSurveyImage('H10', 'H10. Vinh danh (Hình 3.17)')}
                   </div>
                   <p className="font-bold text-slate-900 text-xs">
                     D8. Bộ nhận diện đại diện cho cả ba loại hình lân, sư, rồng của Liên đoàn ở mức nào?
                   </p>
-                  {renderSemanticScale('D8', 'Chỉ đại diện một loại hình', 'Đại diện đủ ba loại hình')}
+                  {renderSemanticScale('D8')}
                 </div>
 
                 {/* D9 */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
-                  <div className="grid grid-cols-4 gap-2">
-                    {renderSurveyImage('H2', 'H2')}
-                    {renderSurveyImage('H3', 'H3')}
-                    {renderSurveyImage('H8', 'H8')}
-                    {renderSurveyImage('H11', 'H11')}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {renderSurveyImage('H2', 'H2. Biến thể và huy hiệu (Hình 3.9)')}
+                    {renderSurveyImage('H3', 'H3. Cỡ thu nhỏ (Hình 3.7)')}
+                    {renderSurveyImage('H8', 'H8. Thẻ đeo (Hình 3.15)')}
+                    {renderSurveyImage('H11', 'H11. Ảnh đại diện (Hình 3.18)')}
                   </div>
                   <p className="font-bold text-slate-900 text-xs">
                     D9. Ở cỡ nhỏ (huy hiệu, thẻ đeo, ảnh đại diện mạng xã hội), biểu trưng còn nhận ra được ở mức nào?
                   </p>
-                  {renderSemanticScale('D9', 'Không nhận ra', 'Nhận ra rõ')}
+                  {renderSemanticScale('D9')}
                 </div>
 
                 {/* D10 */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
-                  {renderSurveyImage('SO-SANH', 'SO-SANH. Biểu trưng đề xuất đặt cạnh 5 biểu trưng khác')}
+                  {renderSurveyImage('SO-SANH', 'SO-SANH. Biểu trưng đề xuất đặt cạnh 5 biểu trưng liên đoàn lân sư rồng khác (Hình 2.11b)')}
                   <p className="font-bold text-slate-900 text-xs">
                     D10. So với biểu trưng của các đoàn, câu lạc bộ và liên đoàn lân sư rồng khác, biểu trưng dễ phân biệt ở mức nào?
                   </p>
-                  {renderSemanticScale('D10', 'Dễ nhầm lẫn', 'Phân biệt rõ')}
+                  {renderSemanticScale('D10')}
                 </div>
 
                 {/* D14 */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">
-                  <div className="grid grid-cols-4 gap-2">
-                    {renderSurveyImage('H3', 'H3')}
-                    {renderSurveyImage('H8', 'H8')}
-                    {renderSurveyImage('H9', 'H9')}
-                    {renderSurveyImage('H10', 'H10')}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {renderSurveyImage('H3', 'H3 (Hình 3.7, 3.10)')}
+                    {renderSurveyImage('H8', 'H8 (Hình 3.15)')}
+                    {renderSurveyImage('H9', 'H9 (Hình 3.16)')}
+                    {renderSurveyImage('H10', 'H10 (Hình 3.17)')}
                   </div>
                   <p className="font-bold text-slate-900 text-xs">
                     D14. Trước khi gia công (thêu, in, dập nổi), bộ nhận diện cần chỉnh sửa ở mức nào để phù hợp với kỹ thuật và chi phí của Liên đoàn?
                   </p>
-                  {renderSemanticScale('D14', 'Cần làm lại phần lớn', 'Dùng được ngay')}
+                  {renderSemanticScale('D14')}
                 </div>
 
                 <div className="pt-2">

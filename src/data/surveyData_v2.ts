@@ -93,6 +93,103 @@ export const V2_THESIS_METADATA = {
 };
 
 // ---------------------------------------------------------------------------
+// 5-point semantic levels for Brand Identity Evaluation (Phần B / C / D)
+// ---------------------------------------------------------------------------
+export const V2_D_QUESTIONS_LEVELS: Record<string, string[]> = {
+  D1: [
+    'Rời rạc, mất cân đối',
+    'Chưa cân đối lắm',
+    'Tạm được',
+    'Cân đối',
+    'Chặt chẽ, cân đối'
+  ],
+  D2: [
+    'Không truyền tải được',
+    'Truyền tải mờ nhạt',
+    'Truyền tải được một phần',
+    'Truyền tải khá rõ',
+    'Truyền tải rõ'
+  ],
+  D3: [
+    'Không gợi liên hệ',
+    'Gợi liên hệ mờ nhạt',
+    'Ở mức trung bình',
+    'Gợi liên hệ khá rõ',
+    'Gợi liên hệ rõ'
+  ],
+  D4: [
+    'Sao chép, mang cảm giác phục dựng',
+    'Nghiêng về phục dựng',
+    'Ở giữa',
+    'Nghiêng về chuyển hóa đương đại',
+    'Chuyển hóa đương đại, vẫn giữ căn cứ di sản'
+  ],
+  D5: [
+    'Không phân biệt được',
+    'Khó phân biệt',
+    'Phân biệt được một phần',
+    'Phân biệt khá rõ',
+    'Phân biệt rõ'
+  ],
+  D7: [
+    'Không phù hợp',
+    'Ít phù hợp',
+    'Tương đối phù hợp',
+    'Khá phù hợp',
+    'Rất phù hợp'
+  ],
+  D8: [
+    'Chỉ đại diện một loại hình',
+    'Đại diện chưa đều',
+    'Đại diện được một phần',
+    'Đại diện khá đầy đủ',
+    'Đại diện đủ ba loại hình'
+  ],
+  D9: [
+    'Không nhận ra',
+    'Khó nhận ra',
+    'Nhận ra nhưng phải nhìn kỹ',
+    'Nhận ra khá dễ',
+    'Nhận ra rõ'
+  ],
+  D10: [
+    'Dễ nhầm lẫn',
+    'Còn khá giống biểu trưng khác',
+    'Phân biệt được nhưng chưa nổi bật',
+    'Phân biệt khá rõ',
+    'Phân biệt rõ'
+  ],
+  D11: [
+    'Rời rạc',
+    'Liên kết yếu',
+    'Liên kết một phần',
+    'Khá thống nhất',
+    'Thống nhất'
+  ],
+  D12: [
+    'Không nhất quán',
+    'Ít nhất quán',
+    'Nhất quán ở một số nhóm ứng dụng',
+    'Khá nhất quán',
+    'Nhất quán'
+  ],
+  D13: [
+    'Không thể tự áp dụng',
+    'Khó tự áp dụng',
+    'Áp dụng được một phần',
+    'Khá dễ tự áp dụng',
+    'Tự áp dụng được ngay'
+  ],
+  D14: [
+    'Cần làm lại phần lớn',
+    'Cần sửa nhiều chi tiết',
+    'Cần sửa một số chi tiết',
+    'Chỉ cần sửa nhỏ',
+    'Dùng được ngay'
+  ]
+};
+
+// ---------------------------------------------------------------------------
 // Color options for N6 with exact HEX colors
 // ---------------------------------------------------------------------------
 export const COLOR_OPTIONS_N6 = [
