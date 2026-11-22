@@ -426,14 +426,14 @@ export const AdminDashboard: React.FC = () => {
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-1.5 text-[11px]">
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-                                {resp.participant.code}
+                                {resp.participant?.code}
                               </span>
-                              {resp.participant.fullName && (
+                              {resp.participant?.fullName && (
                                 <span className="font-bold text-slate-800">
                                   {resp.participant.fullName}
                                 </span>
                               )}
-                              {resp.participant.titleUnit && (
+                              {resp.participant?.titleUnit && (
                                 <span className="text-slate-500 text-[10px]">
                                   ({resp.participant.titleUnit})
                                 </span>
@@ -555,14 +555,14 @@ export const AdminDashboard: React.FC = () => {
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-black text-indigo-750 bg-indigo-50 border border-indigo-150 px-2.5 py-0.5 rounded text-[10px]">
-                      {sub.participant.code}
+                      {sub.participant?.code}
                     </span>
                     <span className="font-extrabold text-slate-900">
-                      {sub.participant.fullName || '(Không ghi tên)'}
+                      {sub.participant?.fullName || '(Không ghi tên)'}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-450 font-semibold leading-relaxed">
-                    Hình thức: {sub.participant.participationForm} · {sub.participant.titleUnit || 'Chưa khai báo chức vụ'}
+                    Hình thức: {sub.participant?.participationForm} · {sub.participant?.titleUnit || 'Chưa khai báo chức vụ'}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 pt-0.5">
                     <span className="text-[9px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
@@ -614,21 +614,21 @@ export const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 leading-relaxed">
                   <div>
                     <span className="text-slate-400 font-bold uppercase text-[9px] block">Mã ứng viên:</span>
-                    <span className="text-slate-900 font-extrabold">{selectedSubmission.participant.code}</span>
+                    <span className="text-slate-900 font-extrabold">{selectedSubmission.participant?.code}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 font-bold uppercase text-[9px] block">Tên nhóm:</span>
                     <span className="text-slate-900 font-extrabold">
-                      {SURVEY_GROUPS.find((g) => g.code === selectedSubmission.participant.groupCode)?.name}
+                      {SURVEY_GROUPS.find((g) => g.code === selectedSubmission.participant?.groupCode)?.name}
                     </span>
                   </div>
-                  {selectedSubmission.participant.fullName && (
+                  {selectedSubmission.participant?.fullName && (
                     <div>
                       <span className="text-slate-400 font-bold uppercase text-[9px] block">Họ và tên:</span>
                       <span className="text-slate-900 font-extrabold">{selectedSubmission.participant.fullName}</span>
                     </div>
                   )}
-                  {selectedSubmission.participant.titleUnit && (
+                  {selectedSubmission.participant?.titleUnit && (
                     <div>
                       <span className="text-slate-400 font-bold uppercase text-[9px] block">Chức vụ / Đơn vị:</span>
                       <span className="text-slate-900 font-extrabold">{selectedSubmission.participant.titleUnit}</span>
@@ -637,7 +637,7 @@ export const AdminDashboard: React.FC = () => {
                   <div>
                     <span className="text-slate-400 font-bold uppercase text-[9px] block">Đồng thuận ghi âm:</span>
                     <span className="text-slate-900 font-extrabold">
-                      {selectedSubmission.participant.consentRecord === true ? 'Có đồng ý ghi âm' : selectedSubmission.participant.consentRecord === false ? 'Không đồng ý ghi âm' : 'Không áp dụng'}
+                      {selectedSubmission.participant?.consentRecord === true ? 'Có đồng ý ghi âm' : selectedSubmission.participant?.consentRecord === false ? 'Không đồng ý ghi âm' : 'Không áp dụng'}
                     </span>
                   </div>
                   {selectedSubmission.participant.consentCamera && (
@@ -676,10 +676,10 @@ export const AdminDashboard: React.FC = () => {
               {/* Group Likert answers */}
               <div className="bg-white border border-slate-200 rounded-2xl p-4.5 space-y-3.5 text-slate-700">
                 <h4 className="font-extrabold text-slate-900 border-b border-slate-100 pb-2">
-                  B. Khảo sát riêng nhóm {selectedSubmission.participant.groupCode}
+                  B. Khảo sát riêng nhóm {selectedSubmission.participant?.groupCode}
                 </h4>
                 <div className="space-y-3">
-                  {(GROUP_LIKERT_QUESTIONS[selectedSubmission.participant.groupCode] || []).map((q) => {
+                  {(GROUP_LIKERT_QUESTIONS[selectedSubmission.participant?.groupCode || ''] || []).map((q) => {
                     const ans = selectedSubmission.likertAnswers[q.id];
                     
                     if (q.type === 'likert') {

@@ -136,11 +136,14 @@ export class BrandSurveyV2Service {
           .from('lan_su_rong_v2_submissions')
           .upsert(row, { onConflict: 'participant_code' });
         
-        if (error) throw error;
-        console.log('[V2] Saved to Supabase V2.');
+        if (error) {
+          console.error('[V2 Supabase Error Details]:', error.message, error.details, error.hint, error.code);
+          throw error;
+        }
+        console.log('[V2] Saved to Supabase V2 successfully.');
         return;
-      } catch (e) {
-        console.error('[V2] Error saving to Supabase V2, falling back to LocalStorage:', e);
+      } catch (e: any) {
+        console.error('[V2] Error saving to Supabase V2, falling back to LocalStorage:', e?.message || e);
       }
     }
 
@@ -201,7 +204,21 @@ export class BrandSurveyV2Service {
     }
 
     const raw = localStorage.getItem(LS_KEY_V2);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)
+        ? parsed.map((item: any) => ({
+            ...item,
+            profile: item.profile || {},
+            answers: item.answers || {},
+            openAnswers: item.openAnswers || {},
+            interviewAnswers: item.interviewAnswers || {},
+          }))
+        : [];
+    } catch {
+      return [];
+    }
   }
 
   // Smart image URL lookup

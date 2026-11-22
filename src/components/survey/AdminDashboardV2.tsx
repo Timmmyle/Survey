@@ -266,14 +266,14 @@ export const AdminDashboardV2: React.FC = () => {
                           {sub.participantCode}
                         </span>
                         <span className="font-extrabold text-slate-900">
-                          {sub.profile.fullName || '(Ẩn danh)'}
+                          {sub.profile?.fullName || '(Ẩn danh)'}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           · {sub.phieuId}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-semibold">
-                        {sub.profile.titleUnit || 'Chưa cung cấp chức vụ'} · {sub.profile.yearsExp || 'N/A kinh nghiệm'}
+                        {sub.profile?.titleUnit || 'Chưa cung cấp chức vụ'} · {sub.profile?.yearsExp || 'N/A kinh nghiệm'}
                       </p>
                       <div className="flex flex-wrap gap-2 pt-0.5">
                         <span className="text-[9px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
@@ -330,7 +330,7 @@ export const AdminDashboardV2: React.FC = () => {
                 </div>
                 <div className="space-y-2 text-xs">
                   {V2_PARTICIPANT_GROUPS.map(g => {
-                    const c = v1Subs.filter(s => s.participant.groupCode === g.code || s.participant.groupCode.replace('QT-LĐ','QT-LD').replace('CĐ-TH','CD-TH').replace('KG-ĐT','KG-DT') === g.code).length;
+                    const c = v1Subs.filter(s => s.participant?.groupCode === g.code || s.participant?.groupCode?.replace('QT-LĐ','QT-LD').replace('CĐ-TH','CD-TH').replace('KG-ĐT','KG-DT') === g.code).length;
                     return (
                       <div key={g.code} className="flex justify-between font-semibold text-slate-700">
                         <span>{g.code} - {g.shortName}</span>
@@ -390,10 +390,10 @@ export const AdminDashboardV2: React.FC = () => {
               <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
                 <h4 className="font-black text-slate-900 border-b border-slate-100 pb-2">Thông tin người đánh giá</h4>
                 <div className="grid grid-cols-2 gap-2 text-slate-700 leading-relaxed font-semibold">
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Họ tên / Chức danh:</span> {selectedV2Sub.profile.fullName || '(Ẩn danh)'}</div>
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Đơn vị:</span> {selectedV2Sub.profile.titleUnit || 'N/A'}</div>
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Chuyên môn / Vai trò:</span> {selectedV2Sub.profile.speciality || 'N/A'}</div>
-                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Kinh nghiệm:</span> {selectedV2Sub.profile.yearsExp || 'N/A'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Họ tên / Chức danh:</span> {selectedV2Sub.profile?.fullName || '(Ẩn danh)'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Đơn vị:</span> {selectedV2Sub.profile?.titleUnit || 'N/A'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Chuyên môn / Vai trò:</span> {selectedV2Sub.profile?.speciality || 'N/A'}</div>
+                  <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Kinh nghiệm:</span> {selectedV2Sub.profile?.yearsExp || 'N/A'}</div>
                   {selectedV2Sub.maDot1 && (
                     <div><span className="text-slate-400 text-[10px] uppercase font-bold block">Mã đợt 1:</span> {selectedV2Sub.maDot1}</div>
                   )}
